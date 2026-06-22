@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Rig Runner</title>
+<style>
+  :root{
+    --void:#0d0f14; --panel:#151922; --panelHi:#1e2530; --grid:#222a36;
+    --phosphor:#39ff8b; --phosphorDim:#1f7d48;
+    --amber:#ffb454; --ember:#ff5d5d; --coin:#ffd24a;
+    --text:#e6edf3; --textDim:#8b98a8; --textFaint:#4a5566;
+    --mono:'SF Mono',ui-monospace,Menlo,Consolas,'Courier New',monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:var(--void);color:var(--text);font-family:var(--mono);-webkit-font-smoothing:antialiased}
+  body{max-width:760px;margin:0 auto;padding:0 16px 90px;min-height:100vh}
+  button{font-family:var(--mono);cursor:pointer;border:none;background:none;color:inherit}
+  ::selection{background:var(--phosphorDim);color:var(--void)}
+  header{padding:16px 0 8px}
+  .brand{color:var(--phosphor);font-size:12px;letter-spacing:4px}
+  .ver{color:var(--textFaint);font-size:10px;letter-spacing:1px}
+  .hud{display:flex;justify-content:space-between;align-items:baseline;padding:8px 0}
+  .hud .coin{color:var(--coin);font-size:24px;font-weight:700}
+  .hud .rate{color:var(--phosphorDim);font-size:12px;text-align:right}
+  .view{display:none} .view.active{display:block}
+  #roomWrap{border:2px solid var(--grid);border-radius:10px;overflow:hidden;background:#070a0e;position:relative;line-height:0}
+  #roomImg{width:100%;display:block}
+  #rigHot{position:absolute;cursor:pointer;border-radius:6px}
+  #rigHot::after{content:'';position:absolute;inset:0;border:2px solid var(--phosphor);border-radius:6px;opacity:.55;animation:pulse 1.9s ease-in-out infinite}
+  #rigHot:hover::after{opacity:.95}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(57,255,139,0);opacity:.4}50%{box-shadow:0 0 0 5px rgba(57,255,139,.12);opacity:.95}}
+  #rigTag{position:absolute;background:#0d0f14cc;border:1px solid var(--phosphorDim);color:var(--phosphor);
+    font-size:10px;letter-spacing:1px;padding:2px 6px;border-radius:4px;pointer-events:none;white-space:nowrap;transform:translateX(-50%)}
+  .roomHint{color:var(--textFaint);font-size:11px;text-align:center;margin-top:10px}
+  .roomHint b{color:var(--phosphor)}
+  .imgErr{display:none;color:var(--ember);font-size:12px;padding:24px;text-align:center;line-height:1.6}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+  .stat{background:var(--panel);border:1px solid var(--grid);border-radius:10px;padding:14px}
+  .stat .l{color:var(--textFaint);font-size:9px;letter-spacing:1px;text-transform:uppercase}
+  .stat .v{font-size:24px;font-weight:800;margin-top:4px}
+  .stat .s{color:var(--textDim);font-size:11px;margin-top:2px}
+  .powerBar{height:8px;background:var(--grid);border-radius:4px;overflow:hidden;margin-top:10px}
+  .powerFill{height:8px;background:var(--phosphor);border-radius:4px;transition:width .4s}
+  .section{color:var(--textDim);font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:18px 0 8px}
+  .backdrop{position:fixed;inset:0;background:#000000cc;display:none;align-items:flex-end;justify-content:center;z-index:100}
+  .backdrop.open{display:flex}
+  .sheet{background:var(--panel);border:1px solid var(--grid);border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:760px;max-height:88vh;overflow:auto;animation:slideUp .18s ease-out}
+  @keyframes slideUp{from{transform:translateY(30px);opacity:.6}to{transform:none;opacity:1}}
+  .sheetHead{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px}
+  .sheetHead h2{font-size:22px;font-weight:800}
+  .sheetHead .sub{color:var(--textDim);font-size:12px;margin-top:2px}
+  .closeX{color:var(--textFaint);font-size:24px;line-height:1;padding:0 4px}
+  .totals{display:flex;gap:8px;margin:16px 0 8px}
+  .tcard{flex:1;background:var(--panelHi);border:1px solid var(--grid);border-radius:10px;padding:12px;text-align:center}
+  .tcard .v{font-size:20px;font-weight:800}
+  .tcard .l{color:var(--textFaint);font-size:9px;letter-spacing:1px;margin-top:3px}
+  .cardsLabel{color:var(--textDim);font-size:11px;letter-spacing:2px;text-transform:uppercase;margin:16px 0 8px}
+  .gpuRow{display:flex;align-items:center;gap:10px;background:var(--panelHi);border:1px solid var(--grid);border-radius:10px;padding:8px 12px;margin-bottom:5px}
+  .gpuRow .dot{width:7px;height:7px;border-radius:50%;background:var(--phosphor);flex:none;box-shadow:0 0 6px var(--phosphor)}
+  .gpuRow .dot.off{background:var(--textFaint);box-shadow:none}
+  .gpuRow .info{flex:1;min-width:0}
+  .gpuRow .name{font-size:13px;font-weight:600}
+  .gpuRow .meta{color:var(--textDim);font-size:10px;margin-top:1px}
+  .gpuRow .rate{color:var(--phosphor);font-size:13px;font-weight:700;text-align:right;flex:none}
+  .navBtns{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+  .navBtns button{flex:1;min-width:30%;background:var(--phosphorDim);color:var(--void);border-radius:10px;padding:13px;font-weight:800;letter-spacing:1px;font-size:13px}
+  .navBtns button.ghost{background:var(--panelHi);color:var(--phosphor);border:1px solid var(--phosphorDim)}
+  .navBtns button.power{background:var(--panelHi);border:1px solid var(--grid)}
+  .navBtns button.power.on{color:var(--phosphor);border-color:var(--phosphorDim)}
+  .navBtns button.power.off{color:var(--ember);border-color:var(--ember)}
+  .nodeHead{display:flex;justify-content:space-between;align-items:flex-start;background:var(--panel);border:1px solid var(--grid);border-radius:12px;padding:16px;margin-top:10px}
+  .nodeHead .moniker{font-size:22px;font-weight:800}
+  .nodeHead .addr{color:var(--textFaint);font-size:11px;margin-top:2px}
+  .status{font-size:11px;padding:4px 8px;border-radius:999px;border:1px solid var(--phosphorDim);color:var(--phosphor);letter-spacing:1px}
+  .status.warn{border-color:var(--ember);color:var(--ember)}
+  .status.mid{border-color:var(--amber);color:var(--amber)}
+  .decayWarn{background:#2a1414;border:1px solid var(--ember);color:var(--ember);border-radius:10px;padding:10px 12px;margin-top:8px;font-size:12px;display:none}
+  .decayWarn.show{display:block}
+  .spark{margin-top:8px;background:var(--panel);border:1px solid var(--grid);border-radius:10px;padding:12px}
+  .spark .l{color:var(--textFaint);font-size:9px;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+  canvas{width:100%;display:block}
+  .rigList{margin-top:8px}
+  .rigCard{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--grid);border-radius:10px;padding:12px;margin-bottom:6px}
+  .rigCard .info{flex:1}
+  .rigCard .nm{font-size:14px;font-weight:600}
+  .rigCard .sub{color:var(--textDim);font-size:11px;margin-top:2px}
+  .rigCard .st{font-size:10px;letter-spacing:1px;padding:3px 7px;border-radius:999px;border:1px solid var(--grid)}
+  .st.MINING{color:var(--phosphor);border-color:var(--phosphorDim)}
+  .st.OFFLINE{color:var(--textFaint)}
+  .st.STARTUP,.st.STOPPING{color:var(--amber);border-color:var(--amber)}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th{color:var(--textFaint);font-size:9px;letter-spacing:1px;text-transform:uppercase;text-align:left;padding:6px 8px;border-bottom:1px solid var(--grid)}
+  td{padding:8px;border-bottom:1px solid var(--grid)}
+  tr.me td{background:#11251a}
+  .vmoniker{font-weight:600}
+  .vshare{color:var(--phosphor);font-weight:700}
+  .npill{font-size:9px;color:var(--void);background:var(--phosphor);border-radius:4px;padding:1px 4px;margin-left:6px;letter-spacing:1px}
+  .blockRow{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--grid);border-radius:8px;padding:10px 12px;margin-bottom:6px;cursor:pointer}
+  .blockRow:hover{border-color:var(--phosphorDim)}
+  .bh{color:var(--coin);font-weight:700;font-size:14px;width:60px;flex:none}
+  .binfo{flex:1;min-width:0}
+  .binfo .top{font-size:13px}
+  .binfo .sub{color:var(--textFaint);font-size:10px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .breward{color:var(--phosphor);font-size:13px;font-weight:700;flex:none}
+  .distRow{display:flex;justify-content:space-between;padding:8px;border-bottom:1px solid var(--grid);font-size:13px}
+  .note{color:var(--textFaint);font-size:10px;line-height:1.5;margin-top:16px;border-top:1px solid var(--grid);padding-top:12px}
+  .note b{color:var(--amber)}
+  .tabs{position:fixed;bottom:0;left:0;right:0;background:var(--panel);border-top:1px solid var(--grid);display:flex;justify-content:center;gap:8px;padding:6px 8px 10px;z-index:50}
+  .tabs button{flex:1;max-width:200px;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--textFaint);font-size:10px;letter-spacing:1px;padding:6px 0;border-radius:8px}
+  .tabs button.active{color:var(--phosphor)}
+  .tabs .ic{font-size:18px}
+
+  /* mining console */
+  #console{position:fixed;inset:0;z-index:200;background:#020402;display:none;flex-direction:column}
+  #console.open{display:flex}
+  .crtBar{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;background:#0a120a;border-bottom:1px solid #15301a;flex:none}
+  .crtBar .ttl{color:#39ff8b;font-size:12px;letter-spacing:2px}
+  .crtBar .x{color:#2f7d48;font-size:22px;line-height:1;cursor:pointer;padding:0 6px}
+  .crtBar .x:hover{color:#39ff8b}
+  .crtScreen{flex:1;position:relative;overflow:hidden;background:radial-gradient(ellipse at center,#04140a 0%,#020802 100%)}
+  .crtScreen::before{content:'';position:absolute;inset:0;pointer-events:none;z-index:3;background:repeating-linear-gradient(0deg, rgba(0,0,0,0) 0px, rgba(0,0,0,0) 2px, rgba(0,0,0,.22) 3px, rgba(0,0,0,0) 4px)}
+  .crtScreen::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:4;box-shadow:inset 0 0 120px rgba(0,0,0,.7), inset 0 0 30px rgba(0,40,0,.4)}
+  #crtLog{position:absolute;left:0;right:0;bottom:0;padding:14px 16px;z-index:2;font-family:var(--mono);font-size:12.5px;line-height:1.5;text-shadow:0 0 4px currentColor;white-space:pre-wrap;word-break:break-word}
+  .c-eth{color:#39ff8b} .c-gpu{color:#d96bff} .c-job{color:#9ad8ff}
+  .c-share{color:#fff36b;font-weight:700} .c-ok{color:#39ff8b;font-weight:700}
+  .c-dim{color:#2f7d48} .c-warn{color:#ffb454}
+  .crtFoot{flex:none;display:flex;gap:10px;justify-content:space-between;align-items:center;padding:8px 14px;background:#0a120a;border-top:1px solid #15301a;color:#2f7d48;font-size:11px}
+  .crtFoot b{color:#39ff8b}
+  .crtBtn{background:#0a120a;border:1px solid #2f7d48;color:#39ff8b;border-radius:6px;padding:6px 12px;font-size:11px;letter-spacing:1px;cursor:pointer}
+  .crtBtn:hover{background:#10240f}
+  .crtCursor{display:inline-block;width:8px;height:14px;background:#39ff8b;animation:blink 1s steps(1) infinite;vertical-align:middle}
+  @keyframes blink{50%{opacity:0}}
+  .emptyScreen{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:2;color:#1c3a24;font-size:13px;letter-spacing:2px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">RIG RUNNER &middot; DORM 1 <span class="ver">v0.1</span></div>
+  <div class="hud">
+    <span class="coin" id="hudCoin">&#9923; 0 BBT</span>
+    <span class="rate" id="hudRate">0 H/s</span>
+  </div>
+</header>
+
+<div class="view active" id="view-room">
+  <div id="roomWrap">
+    <img id="roomImg" src="room.png" alt="Dorm room" />
+    <div id="rigHot" title="Mining rig"></div>
+    <div id="rigTag">RIG 01 &middot; tap for stats</div>
+    <div class="imgErr" id="imgErr">Couldn&rsquo;t load <b>room.png</b>. Keep all files together (see README).</div>
+  </div>
+  <div class="roomHint">Tap the <b>mining rig</b> to view stats, your node, and the network.</div>
+</div>
+<div class="view" id="view-dash"></div>
+<div class="view" id="view-explore"></div>
+
+<div class="backdrop" id="backdrop"><div class="sheet" id="sheet"></div></div>
+
+<div id="console">
+  <div class="crtBar">
+    <span class="ttl" id="crtTitle">MINING CONSOLE</span>
+    <span class="x" id="crtClose">&times;</span>
+  </div>
+  <div class="crtScreen">
+    <div class="emptyScreen" id="crtEmpty">— SCREEN OFF —</div>
+    <div id="crtLog"></div>
+  </div>
+  <div class="crtFoot">
+    <span id="crtStatus">&hellip;</span>
+    <button class="crtBtn" id="crtPower">POWER</button>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="active" data-tab="room"><span class="ic">&#127968;</span>ROOM</button>
+  <button data-tab="dash"><span class="ic">&#128225;</span>MY NODE</button>
+  <button data-tab="explore"><span class="ic">&#129513;</span>EXPLORER</button>
+</div>
+
+<script src="chain.js"></script>
+<script>
+/* =========================================================================
+   Rig Runner v0.1 — integrated build
+   Token: BBT. Each rig is an independent object with its own state machine
+   (OFFLINE / STARTUP / MINING / STOPPING) and hashrate. The sum of all online
+   rigs feeds the player validator, registering cumulatively on the network.
+   ========================================================================= */
+
+/* ---- GPU + rig definitions ---- */
+const GPU_CATALOG={ rx6800:{ name:'AMD RX 6800', hashPerCard:550, watts:230, mhPerCard:28 } };
+
+/* Rig factory: each rig is independent. Add more rigs to RIGS[] later. */
+function makeRig(id,label,gpu,count){
+  return { id,label,gpu,count,
+    state:'OFFLINE',          // OFFLINE | STARTUP | MINING | STOPPING
+    shares:0, jobId:1 };
+}
+const RIGS=[ makeRig('rig1','Rig 01 \u00B7 Desk','rx6800',6) ];
+
+function rigGpu(r){ return GPU_CATALOG[r.gpu]; }
+function rigFullHash(r){ return rigGpu(r).hashPerCard * r.count; }     // nameplate H/s
+function rigLiveHash(r){ return r.state==='MINING' ? rigFullHash(r) : 0; } // contributes only while mining
+function networkHashFromRigs(){ return RIGS.reduce((s,r)=>s+rigLiveHash(r),0); }
+
+/* ---- persistence: rig states + chain ---- */
+const KEY='rigrunner:integrated:v0_1';
+let APP;
+(function init(){
+  let loaded=null;
+  try{ const raw=localStorage.getItem(KEY); if(raw) loaded=JSON.parse(raw); }catch(e){}
+  if(loaded && loaded.chain && loaded.chain.network && loaded.rigs){
+    APP=loaded;
+    // restore rig array from saved states
+    RIGS.forEach(r=>{ const sv=APP.rigs.find(x=>x.id===r.id); if(sv){ r.state=sv.state; r.shares=sv.shares||0; r.jobId=sv.jobId||1; } });
+    setPlayerHashRate(APP.chain, networkHashFromRigs());
+    const elapsed=(Date.now()-APP.chain.network.lastBlockAt)/1000;
+    if(elapsed>0) advance(APP.chain, elapsed);
+  } else {
+    // fresh game: rig starts MINING (already warmed) so first-time players see life
+    RIGS[0].state='MINING';
+    const chain=createNetwork(networkHashFromRigs());
+    advance(chain, 300);
+    APP={ chain };
+  }
+  syncRigsToApp(); save();
+})();
+function syncRigsToApp(){ APP.rigs=RIGS.map(r=>({id:r.id,state:r.state,shares:r.shares,jobId:r.jobId})); }
+function save(){ syncRigsToApp(); try{ localStorage.setItem(KEY, JSON.stringify(APP)); }catch(e){} }
+const SRC=makeMockSource(()=>APP.chain);
+
+/* ---- live tick ---- */
+let shareHistory=[];
+function tick(){
+  setPlayerHashRate(APP.chain, networkHashFromRigs());
+  advance(APP.chain, APP.chain.network.blockTimeSec);
+  const p=SRC.getPlayer(), net=SRC.getNetwork();
+  shareHistory.push(p.stakeWeight/net.bondedWeight);
+  if(shareHistory.length>60) shareHistory.shift();
+  save(); render();
+}
+setInterval(tick, 2000);
+
+/* ---- helpers ---- */
+const fmt=n=>Math.round(n).toLocaleString();
+const fmt1=n=>n.toFixed(1);
+const pct=n=>(n*100).toFixed(1)+'%';
+const shortAddr=id=>'rigvaloper1'+id.replace(/[^a-z0-9]/gi,'').slice(0,8).toLowerCase()+'\u2026q'+(id.length*7%97);
+const ago=ms=>{const s=Math.floor((Date.now()-ms)/1000); if(s<60)return s+'s ago'; return Math.floor(s/60)+'m ago';};
+
+/* ---- room hotspot ---- */
+const hot=document.getElementById('rigHot'), tag=document.getElementById('rigTag'), img=document.getElementById('roomImg');
+const RIG_PCT={ left:57.5, top:58.5, width:23.0, height:14.5 };
+function placeHot(){
+  hot.style.left=RIG_PCT.left+'%'; hot.style.top=RIG_PCT.top+'%';
+  hot.style.width=RIG_PCT.width+'%'; hot.style.height=RIG_PCT.height+'%';
+  tag.style.left=(RIG_PCT.left+RIG_PCT.width/2)+'%'; tag.style.top=(RIG_PCT.top-4)+'%';
+}
+img.addEventListener('load', placeHot);
+img.addEventListener('error', function(){ document.getElementById('imgErr').style.display='block'; img.style.display='none'; hot.style.display='none'; tag.style.display='none'; });
+if(img.complete && img.naturalWidth) placeHot();
+hot.addEventListener('click', ()=>openRigStats(RIGS[0]));
+
+/* ---- rig quick-stats sheet ---- */
+const backdrop=document.getElementById('backdrop'), sheet=document.getElementById('sheet');
+let activeRig=RIGS[0];
+function openRigStats(rig){
+  activeRig=rig;
+  const gpu=rigGpu(rig); const full=rigFullHash(rig); const totalW=gpu.watts*rig.count;
+  const p=SRC.getPlayer(), net=SRC.getNetwork(); const share=p.stakeWeight/net.bondedWeight;
+  const mining = rig.state==='MINING';
+  let rows='';
+  for(let i=0;i<rig.count;i++){
+    rows+='<div class="gpuRow"><span class="dot '+(mining?'':'off')+'"></span><div class="info">'+
+      '<div class="name">'+gpu.name+' <span style="color:var(--textFaint)">\u00B7 slot '+(i+1)+'</span></div>'+
+      '<div class="meta">'+gpu.watts+' W \u00B7 '+rig.state+'</div></div>'+
+      '<div class="rate">'+(mining?gpu.hashPerCard:0)+' H/s</div></div>';
+  }
+  sheet.innerHTML='<div class="sheetHead"><div><h2>'+rig.label+'</h2>'+
+    '<div class="sub">'+rig.count+'\u00D7 '+gpu.name+' \u00B7 '+rig.state+'</div></div>'+
+    '<button class="closeX" id="closeRig">\u00D7</button></div>'+
+    '<div class="totals">'+
+    '<div class="tcard"><div class="v" style="color:var(--phosphor)">'+fmt(rigLiveHash(rig))+'</div><div class="l">H/s LIVE</div></div>'+
+    '<div class="tcard"><div class="v" style="color:var(--phosphor)">'+fmt(p.stakeWeight)+'</div><div class="l">VOTING PWR</div></div>'+
+    '<div class="tcard"><div class="v" style="color:var(--coin)">'+fmt1(p.selfBalance)+'</div><div class="l">BBT</div></div>'+
+    '</div>'+
+    '<div class="cardsLabel">Cards \u00B7 '+rig.count+' \u00B7 '+pct(share)+' of network</div>'+rows+
+    '<div class="navBtns">'+
+    '<button class="power '+(mining?'on':'off')+'" id="rigPower">'+(mining||rig.state==='STARTUP'?'\u25A0 Stop':'\u25B6 Start')+'</button>'+
+    '<button id="toConsole">&#9646; Console</button>'+
+    '<button id="toDash">My Node \u2192</button>'+
+    '<button class="ghost" id="toExplore">Explorer \u2192</button>'+
+    '</div>';
+  document.getElementById('closeRig').onclick=()=>backdrop.classList.remove('open');
+  document.getElementById('rigPower').onclick=()=>{ toggleRig(rig); openRigStats(rig); };
+  document.getElementById('toConsole').onclick=()=>{ backdrop.classList.remove('open'); openConsole(rig); };
+  document.getElementById('toDash').onclick=()=>{ backdrop.classList.remove('open'); go('dash'); };
+  document.getElementById('toExplore').onclick=()=>{ backdrop.classList.remove('open'); go('explore'); };
+  backdrop.classList.add('open');
+}
+backdrop.addEventListener('click',e=>{ if(e.target===backdrop) backdrop.classList.remove('open'); });
+
+/* ---- RIG STATE MACHINE ----
+   OFFLINE --start--> STARTUP --(boot done)--> MINING --stop--> STOPPING --(done)--> OFFLINE */
+function toggleRig(rig){
+  if(rig.state==='OFFLINE'){ startRig(rig); }
+  else if(rig.state==='MINING'){ stopRig(rig); }
+  // ignore taps mid-transition (STARTUP/STOPPING)
+}
+function startRig(rig){
+  rig.state='STARTUP'; rig.shares=0; rig.jobId=1; save(); render();
+  // boot takes a few seconds; if a console is open it shows the sequence,
+  // otherwise we still transition to MINING on a timer.
+  rig._bootDone=false;
+  if(!(consoleRig===rig && consoleEl.classList.contains('open'))){
+    setTimeout(()=>{ if(rig.state==='STARTUP'){ rig.state='MINING'; save(); render(); } }, 4000);
+  }
+}
+function stopRig(rig){
+  rig.state='STOPPING'; save(); render();
+  if(!(consoleRig===rig && consoleEl.classList.contains('open'))){
+    setTimeout(()=>{ if(rig.state==='STOPPING'){ rig.state='OFFLINE'; save(); render(); } }, 2500);
+  }
+}
+
+/* ---- MINING CONSOLE (per-rig, state-aware, infinite scroll) ---- */
+const consoleEl=document.getElementById('console');
+const crtLog=document.getElementById('crtLog');
+const crtStatus=document.getElementById('crtStatus');
+const crtEmpty=document.getElementById('crtEmpty');
+const crtTitle=document.getElementById('crtTitle');
+const crtPower=document.getElementById('crtPower');
+let consoleTimer=null, consoleRig=null;
+const MAX_LINES=200;
+let logLines=[]; // ring buffer of {html,cls}
+
+function mhPerCard(rig){ const b=rigGpu(rig).mhPerCard; return b+(Math.random()*2-1); }
+function nowClock(){ const d=new Date(); const p=n=>String(n).padStart(2,'0');
+  return `${p(d.getMonth()+1)}/${p(d.getDate())}/${String(d.getFullYear()).slice(2)}-${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; }
+
+function renderLog(){
+  crtLog.innerHTML = logLines.map(l=>'<div class="ln '+(l.cls||'')+'">'+l.html+'</div>').join('');
+}
+function pushLine(html, cls){
+  logLines.push({html,cls});
+  // RING BUFFER: drop oldest, never clear/restart — seamless loop past MAX_LINES
+  if(logLines.length>MAX_LINES) logLines.shift();
+  renderLog();
+}
+
+function openConsole(rig){
+  consoleRig=rig;
+  consoleEl.classList.add('open');
+  crtTitle.textContent=rig.label.toUpperCase()+' \u00B7 MINING CONSOLE';
+  logLines=[]; renderLog();
+  refreshConsoleForState(rig, true);
+}
+function closeConsole(){
+  consoleEl.classList.remove('open');
+  if(consoleTimer){ clearTimeout(consoleTimer); consoleTimer=null; }
+  consoleRig=null;
+}
+document.getElementById('crtClose').onclick=closeConsole;
+crtPower.onclick=()=>{ if(consoleRig) toggleRig(consoleRig); refreshConsoleForState(consoleRig, true); };
+
+/* Show the right console behavior for the rig's current state. */
+function refreshConsoleForState(rig, justOpened){
+  if(consoleTimer){ clearTimeout(consoleTimer); consoleTimer=null; }
+  crtPower.textContent = (rig.state==='MINING'||rig.state==='STARTUP') ? 'STOP' : 'POWER ON';
+  if(rig.state==='OFFLINE'){
+    crtEmpty.style.display='flex'; crtEmpty.textContent='— SCREEN OFF —';
+    crtStatus.textContent='offline';
+    return;
+  }
+  crtEmpty.style.display='none';
+  if(rig.state==='STARTUP'){ bootSequence(rig); }
+  else if(rig.state==='STOPPING'){ stopSequence(rig); }
+  else if(rig.state==='MINING'){
+    crtStatus.innerHTML='MINING <span class="crtCursor"></span>';
+    // if opened fresh into an already-mining rig, seed a little context (no DAG replay)
+    if(justOpened && logLines.length===0){
+      pushLine('ETH: Resuming session \u2014 '+rig.count+' GPUs online', 'c-ok');
+    }
+    loopMining(rig);
+  }
+}
+
+function bootSequence(rig){
+  const gpu=rigGpu(rig);
+  crtStatus.textContent='initializing\u2026';
+  const steps=[
+    ['RIG RUNNER miner v0.9.2 \u2014 '+rig.count+'x '+gpu.name, 'c-ok', 250],
+    ['Loading OpenCL platform AMD Accelerated Parallel Processing\u2026', 'c-dim', 350],
+    ...Array.from({length:rig.count},(_,i)=>['Detected GPU'+i+': '+gpu.name+'  '+gpu.watts+'W  16GB', 'c-eth', 150]),
+    ['Connecting to pool us2.rigrunner-pool:4444 \u2026', 'c-job', 380],
+    ['Authorized. Subscribed to mining.notify', 'c-ok', 280],
+    ...Array.from({length:rig.count},(_,i)=>['Building DAG for GPU'+i+' \u2026 epoch 482', 'c-dim', 200]),
+    ['DAG generation complete ('+rig.count+' GPUs) \u2014 '+(3*rig.count)+'.0 GB', 'c-ok', 320],
+    ['ETH: Mining started. target '+fmt(rigFullHash(rig))+' H/s ('+(rigGpu(rig).mhPerCard*rig.count).toFixed(1)+' Mh/s)', 'c-eth', 300],
+  ];
+  let i=0;
+  (function next(){
+    if(consoleRig!==rig || rig.state!=='STARTUP'){ return; }
+    if(i>=steps.length){
+      rig.state='MINING'; save(); render();
+      crtStatus.innerHTML='MINING <span class="crtCursor"></span>';
+      crtPower.textContent='STOP';
+      loopMining(rig); return;
+    }
+    const [txt,cls,delay]=steps[i++];
+    pushLine(txt,cls);
+    consoleTimer=setTimeout(next, delay);
+  })();
+}
+
+function stopSequence(rig){
+  crtStatus.textContent='stopping\u2026';
+  crtPower.textContent='POWER ON';
+  const steps=[
+    ['ETH: Stopping mining \u2014 flushing work\u2026', 'c-warn', 400],
+    ...Array.from({length:rig.count},(_,i)=>['GPU'+i+' halted, fan spindown', 'c-gpu', 180]),
+    ['ETH: Disconnected from pool us2.rigrunner-pool:4444', 'c-dim', 350],
+    ['ETH: Miner stopped. '+rig.shares+' shares this session.', 'c-warn', 300],
+  ];
+  let i=0;
+  (function next(){
+    if(consoleRig!==rig || rig.state!=='STOPPING'){ return; }
+    if(i>=steps.length){
+      rig.state='OFFLINE'; save(); render();
+      crtEmpty.style.display='flex'; crtEmpty.textContent='— SCREEN OFF —';
+      crtStatus.textContent='offline';
+      return;
+    }
+    const [txt,cls,delay]=steps[i++];
+    pushLine(txt,cls);
+    consoleTimer=setTimeout(next, delay);
+  })();
+}
+
+function loopMining(rig){
+  if(consoleRig!==rig || rig.state!=='MINING'){ return; }
+  const roll=Math.random();
+  if(roll<0.30){
+    const per=Array.from({length:rig.count},()=>mhPerCard(rig));
+    const tot=per.reduce((a,b)=>a+b,0);
+    pushLine('ETH: Total Speed: '+tot.toFixed(3)+' Mh/s, Shares: '+rig.shares+', Rejected: 0 \u00B7 '+fmt(rigFullHash(rig))+' H/s', 'c-eth');
+    let line='ETH: '; per.forEach((m,i)=>{ line+='GPU'+i+' '+m.toFixed(3)+' Mh/s'+(i<rig.count-1?', ':''); });
+    pushLine(line,'c-eth');
+  } else if(roll<0.50){
+    let line=''; for(let i=0;i<rig.count;i++){ const t=50+Math.floor(Math.random()*22); const fan=20+Math.floor(Math.random()*55);
+      line+='GPU'+i+' t='+t+'C fan='+fan+'%'+(i<rig.count-1?', ':''); }
+    pushLine(line,'c-gpu');
+  } else if(roll<0.72){
+    pushLine('ETH: '+nowClock()+' \u2014 New job #'+(rig.jobId++).toString(16)+' from us2.rigrunner-pool:4444', 'c-job');
+  } else if(roll<0.90){
+    const g=Math.floor(Math.random()*rig.count);
+    pushLine('ETH: '+nowClock()+' \u2014 SHARE FOUND \u2014 (GPU '+g+')', 'c-share');
+    const ms=20+Math.floor(Math.random()*60); rig.shares++;
+    consoleTimer=setTimeout(()=>{ if(consoleRig===rig&&rig.state==='MINING') pushLine('ETH: Share accepted ('+ms+' ms)!', 'c-ok'); continueLoop(rig); }, 150);
+    return;
+  } else {
+    pushLine('ETH: Pool set difficulty to '+(4+Math.floor(Math.random()*8))+'.00 G', 'c-dim');
+  }
+  continueLoop(rig);
+}
+function continueLoop(rig){
+  const p=SRC.getPlayer();
+  crtStatus.innerHTML='MINING '+fmt(networkHashFromRigs())+' H/s \u00B7 '+rig.shares+' shares \u00B7 bal '+fmt1(p.selfBalance)+' BBT <span class="crtCursor"></span>';
+  consoleTimer=setTimeout(()=>loopMining(rig), 350+Math.random()*500);
+}
+
+/* ---- dashboard ---- */
+function renderDash(){
+  const p=SRC.getPlayer(), net=SRC.getNetwork();
+  const share=p.stakeWeight/net.bondedWeight; const eq=equilibriumWeight(p.hashRate||1);
+  const towardEq=p.hashRate>0?Math.min(1,p.stakeWeight/eq):0;
+  const lastBlock=APP.chain.blocks[APP.chain.blocks.length-1];
+  const lastReward=lastBlock?(lastBlock.distribution[p.id]||0):0;
+  const perMin=lastReward*(60/net.blockTimeSec);
+  const anyMining=RIGS.some(r=>r.state==='MINING');
+  const decaying=!anyMining;
+  let rigCards='';
+  RIGS.forEach(r=>{ rigCards+='<div class="rigCard"><div class="info">'+
+    '<div class="nm">'+r.label+'</div><div class="sub">'+r.count+'\u00D7 '+rigGpu(r).name+' \u00B7 '+fmt(rigLiveHash(r))+' H/s live</div></div>'+
+    '<span class="st '+r.state+'">'+r.state+'</span></div>'; });
+  document.getElementById('view-dash').innerHTML=`
+    <div class="nodeHead">
+      <div><div class="moniker">${p.moniker}</div><div class="addr">${shortAddr(p.id)}</div></div>
+      <span class="status ${decaying?'warn':''}">${decaying?'IDLE \u00B7 DECAYING':'ACTIVE'}</span>
+    </div>
+    <div class="decayWarn ${decaying?'show':''}">\u26A0 No rigs mining \u2014 stake-weight is decaying. Start a rig to hold voting power.</div>
+    <div class="grid2">
+      <div class="stat"><div class="l">Voting Power</div><div class="v" style="color:var(--phosphor)">${fmt(p.stakeWeight)}</div>
+        <div class="s">${pct(share)} of network</div><div class="powerBar"><div class="powerFill" style="width:${(share*100).toFixed(1)}%"></div></div></div>
+      <div class="stat"><div class="l">Network Hash (yours)</div><div class="v">${fmt(p.hashRate)} <span style="font-size:13px;color:var(--textDim)">H/s</span></div>
+        <div class="s">equilibrium ${fmt(eq)} (${pct(towardEq)})</div><div class="powerBar"><div class="powerFill" style="width:${(towardEq*100).toFixed(0)}%;background:var(--amber)"></div></div></div>
+      <div class="stat"><div class="l">Balance</div><div class="v" style="color:var(--coin)">${fmt1(p.selfBalance)}</div><div class="s">BBT earned</div></div>
+      <div class="stat"><div class="l">Rewards / min</div><div class="v" style="color:var(--phosphor)">+${fmt1(perMin)}</div>
+        <div class="s">commission ${pct(p.commissionRate)} \u00B7 last blk +${fmt1(lastReward)}</div></div>
+    </div>
+    <div class="section">Rigs \u00B7 ${RIGS.length}</div>
+    <div class="rigList">${rigCards}</div>
+    <div class="spark"><div class="l">Voting-power share \u00B7 last ${shareHistory.length} blocks</div><canvas id="shareSpark" height="60"></canvas></div>
+    <div class="note">Total live hashrate ${fmt(networkHashFromRigs())} H/s feeds your validator; weight accrues with decay and rewards come from real block distribution. Token: <b>BBT</b>.</div>`;
+  drawSpark();
+}
+function drawSpark(){
+  const c=document.getElementById('shareSpark'); if(!c) return;
+  const w=c.clientWidth; c.width=w; const h=c.height; const x=c.getContext('2d'); x.clearRect(0,0,w,h);
+  if(shareHistory.length<2) return;
+  const max=Math.max(...shareHistory), min=Math.min(...shareHistory); const rg=(max-min)||1; const step=w/(shareHistory.length-1);
+  x.strokeStyle=getComputedStyle(document.documentElement).getPropertyValue('--phosphor').trim(); x.lineWidth=2; x.beginPath();
+  shareHistory.forEach((s,i)=>{ const px=i*step, py=h-6-((s-min)/rg)*(h-12); i?x.lineTo(px,py):x.moveTo(px,py); }); x.stroke();
+}
+
+/* ---- explorer ---- */
+function renderExplore(){
+  const net=SRC.getNetwork(); const vals=SRC.getValidators(); const blocks=SRC.getLatestBlocks(12);
+  let vrows='';
+  vals.forEach((v,i)=>{ const share=v.stakeWeight/net.bondedWeight;
+    vrows+=`<tr class="${v.isPlayer?'me':''}"><td>${i+1}</td>
+      <td><span class="vmoniker">${v.moniker}</span>${v.isPlayer?'<span class="npill">YOU</span>':''}</td>
+      <td>${fmt(v.stakeWeight)}</td><td class="vshare">${pct(share)}</td><td>${pct(v.commissionRate)}</td><td>${fmt(v.hashRate)}</td></tr>`; });
+  let brows='';
+  blocks.forEach(b=>{ brows+=`<div class="blockRow" data-h="${b.height}"><div class="bh">#${b.height}</div>
+    <div class="binfo"><div class="top">proposed by ${b.proposerMoniker}</div>
+    <div class="sub">${b.hash} \u00B7 ${b.txCount} txs \u00B7 ${ago(b.time)}</div></div>
+    <div class="breward">+${fmt1(b.reward)}</div></div>`; });
+  document.getElementById('view-explore').innerHTML=`
+    <div class="section">Network \u00B7 ${net.chainId} \u00B7 height ${fmt(net.height)}</div>
+    <div class="section">Validator set \u00B7 ${vals.length} nodes \u00B7 bonded ${fmt(net.bondedWeight)}</div>
+    <table><thead><tr><th>#</th><th>Validator</th><th>Voting Power</th><th>Share</th><th>Comm</th><th>H/s</th></tr></thead><tbody>${vrows}</tbody></table>
+    <div class="section">Latest blocks</div>${brows}
+    <div class="note">Each block\u2019s reward is split across validators by stake-share (proposer gets a small bonus). Tap a block for its distribution. Rewards denominated in <b>BBT</b>.</div>`;
+  document.querySelectorAll('.blockRow').forEach(r=>r.onclick=()=>openBlock(+r.dataset.h));
+}
+function openBlock(height){
+  const b=APP.chain.blocks.find(x=>x.height===height); if(!b) return;
+  const vals=SRC.getValidators(); let rows='';
+  vals.forEach(v=>{ const amt=b.distribution[v.id]||0;
+    rows+=`<div class="distRow"><span>${v.moniker}${v.id===b.proposer?' \u00B7 proposer':''}${v.isPlayer?' (you)':''}</span><span style="color:var(--coin)">+${fmt1(amt)} BBT</span></div>`; });
+  sheet.innerHTML=`<div class="sheetHead"><h2>Block #${b.height}</h2><button class="closeX" id="cx">\u00D7</button></div>
+    <div class="sub" style="word-break:break-all;color:var(--textFaint);font-size:11px;margin-bottom:12px">${b.hash}<br>proposed by ${b.proposerMoniker} \u00B7 ${b.txCount} txs \u00B7 reward ${fmt1(b.reward)} BBT</div>
+    <div class="section">Reward distribution</div>${rows}`;
+  document.getElementById('cx').onclick=()=>backdrop.classList.remove('open');
+  backdrop.classList.add('open');
+}
+
+/* ---- nav + master render ---- */
+let activeTab='room';
+function go(tab){
+  activeTab=tab;
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('view-'+tab).classList.add('active');
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+  render();
+}
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>go(b.dataset.tab));
+if(location.hash==='#explore') go('explore');
+else if(location.hash==='#dash') go('dash');
+function render(){
+  const net=SRC.getNetwork(); const p=SRC.getPlayer();
+  document.getElementById('hudCoin').textContent='\u26C3 '+fmt(p.selfBalance)+' BBT';
+  document.getElementById('hudRate').textContent=fmt(networkHashFromRigs())+' H/s \u00B7 '+pct(p.stakeWeight/net.bondedWeight)+' net';
+  if(activeTab==='dash') renderDash();
+  else if(activeTab==='explore') renderExplore();
+}
+render();
+</script>
+</body>
+</html>
