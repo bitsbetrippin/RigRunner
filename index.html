@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Miner's Life — Rig Runner</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{background:#0a0c08;height:100%}
+  body{display:flex;align-items:center;justify-content:center;min-height:100vh;overflow:hidden}
+  /* stage holds the image; sized to fit viewport while keeping aspect ratio */
+  #stage{position:relative;width:auto;height:100vh;max-width:100vw;aspect-ratio:1122/1402;
+    user-select:none;-webkit-user-select:none}
+  #stage img{position:absolute;inset:0;width:100%;height:100%;display:block;image-rendering:auto}
+  #base{z-index:1}
+  /* the three "clicked" overlays, hidden until hovered/pressed */
+  .state{z-index:2;opacity:0;transition:opacity .04s;pointer-events:none}
+  .state.show{opacity:1}
+  /* invisible clickable hotspots over each button */
+  .hot{position:absolute;z-index:3;cursor:pointer;background:transparent}
+  /* fallback if images fail */
+  #err{position:absolute;inset:0;z-index:5;display:none;color:#39ff8b;background:#0a0c08;
+    font-family:ui-monospace,monospace;align-items:center;justify-content:center;text-align:center;padding:24px;font-size:14px;line-height:1.6}
+</style>
+</head>
+<body>
+  <div id="stage">
+    <img id="base" src="assets/base_start.png" alt="Miner's Life" />
+    <img class="state" id="s-start" src="assets/start_clicked.png" alt="" />
+    <img class="state" id="s-load"  src="assets/load_game_clicked.png" alt="" />
+    <img class="state" id="s-leader" src="assets/leaderboard_clicked.png" alt="" />
+
+    <!-- hotspots: positioned as % of the 1122x1402 art -->
+    <div class="hot" id="h-start"  style="left:5.8%;  top:86.2%; width:23.5%; height:4.8%"></div>
+    <div class="hot" id="h-load"   style="left:35.5%; top:86.2%; width:25.0%; height:4.8%"></div>
+    <div class="hot" id="h-leader" style="left:66.0%; top:86.2%; width:27.0%; height:4.8%"></div>
+
+    <div id="err">Couldn&rsquo;t load the title images.<br>Keep start.html with base_start.png and the three *_clicked.png files in the same folder.</div>
+  </div>
+
+<script>
+  const base=document.getElementById('base');
+  base.addEventListener('error',()=>{ document.getElementById('err').style.display='flex'; });
+
+  // map each hotspot to its overlay image + destination
+  const buttons=[
+    { hot:'h-start',  state:'s-start',  go:'game.html' },     // START GAME -> room
+    { hot:'h-load',   state:'s-load',   go:'game.html' },     // LOAD GAME  -> room (same persisted save)
+    { hot:'h-leader', state:'s-leader', go:'game.html#explore' }, // LEADERBOARDS -> explorer (for now)
+  ];
+
+  function showState(id){
+    document.querySelectorAll('.state').forEach(s=>s.classList.remove('show'));
+    if(id) document.getElementById(id).classList.add('show');
+  }
+
+  buttons.forEach(b=>{
+    const hot=document.getElementById(b.hot);
+    // hover (desktop) shows the depressed-button art
+    hot.addEventListener('mouseenter',()=>showState(b.state));
+    hot.addEventListener('mouseleave',()=>showState(null));
+    // press feedback (touch + mouse)
+    hot.addEventListener('mousedown',()=>showState(b.state));
+    hot.addEventListener('touchstart',()=>showState(b.state),{passive:true});
+    // navigate
+    const navigate=(e)=>{ e.preventDefault(); showState(b.state);
+      setTimeout(()=>{ window.location.href=b.go; },120); };
+    hot.addEventListener('click',navigate);
+  });
+</script>
+</body>
+</html>
