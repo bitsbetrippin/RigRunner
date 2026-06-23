@@ -1,0 +1,81 @@
+category,id,name,vendor,spec,power,price_BBT
+gpus,gtx_1060_6gb,GTX 1060 6GB,NVIDIA,22.0-25.0 MH/s,80-90 W,38
+gpus,gtx_1070,GTX 1070,NVIDIA,27.0-32.0 MH/s,110-125 W,47
+gpus,gtx_1070_ti,GTX 1070 Ti,NVIDIA,30.0-33.0 MH/s,120-140 W,50
+gpus,gtx_1080,GTX 1080,NVIDIA,34.0-38.0 MH/s,150-180 W,58
+gpus,gtx_1080_ti,GTX 1080 Ti,NVIDIA,44.0-50.0 MH/s,180-220 W,75
+gpus,gtx_1660,GTX 1660,NVIDIA,20.0-24.0 MH/s,70-80 W,35
+gpus,gtx_1660_super,GTX 1660 Super,NVIDIA,31.0-34.0 MH/s,70-80 W,52
+gpus,gtx_1660_ti,GTX 1660 Ti,NVIDIA,30.0-32.0 MH/s,70-80 W,50
+gpus,rtx_2060,RTX 2060,NVIDIA,31.0-34.0 MH/s,80-95 W,52
+gpus,rtx_2060_super,RTX 2060 Super,NVIDIA,40.0-44.0 MH/s,120-135 W,67
+gpus,rtx_2070,RTX 2070,NVIDIA,40.0-44.0 MH/s,115-130 W,67
+gpus,rtx_2070_super,RTX 2070 Super,NVIDIA,42.0-45.0 MH/s,120-135 W,70
+gpus,rtx_2080,RTX 2080,NVIDIA,42.0-45.0 MH/s,125-145 W,70
+gpus,rtx_2080_ti,RTX 2080 Ti,NVIDIA,58.0-62.0 MH/s,170-210 W,96
+gpus,rtx_3060,RTX 3060,NVIDIA,47.0-50.0 MH/s,105-120 W,78
+gpus,rtx_3060_ti,RTX 3060 Ti,NVIDIA,58.0-62.0 MH/s,115-130 W,96
+gpus,rtx_3070,RTX 3070,NVIDIA,60.0-63.0 MH/s,115-130 W,98
+gpus,rtx_3070_ti,RTX 3070 Ti,NVIDIA,78.0-82.0 MH/s,180-200 W,128
+gpus,rtx_3080_10gb,RTX 3080 10GB,NVIDIA,95.0-102.0 MH/s,220-250 W,158
+gpus,rtx_3080_12gb,RTX 3080 12GB,NVIDIA,98.0-105.0 MH/s,230-260 W,162
+gpus,rtx_3080_ti,RTX 3080 Ti,NVIDIA,112.0-122.0 MH/s,260-300 W,187
+gpus,rtx_3090,RTX 3090,NVIDIA,118.0-125.0 MH/s,285-320 W,194
+gpus,rtx_3090_ti,RTX 3090 Ti,NVIDIA,125.0-132.0 MH/s,300-340 W,206
+gpus,rtx_4060_ti,RTX 4060 Ti,NVIDIA,44.0-48.0 MH/s,95-115 W,74
+gpus,rtx_4070,RTX 4070,NVIDIA,58.0-63.0 MH/s,110-135 W,97
+gpus,rtx_4070_ti,RTX 4070 Ti,NVIDIA,78.0-85.0 MH/s,170-210 W,130
+gpus,rtx_4080,RTX 4080,NVIDIA,95.0-105.0 MH/s,220-260 W,160
+gpus,rtx_4090,RTX 4090,NVIDIA,120.0-135.0 MH/s,300-360 W,204
+gpus,rx_470_4_8gb,RX 470 4/8GB,AMD,27.0-30.0 MH/s,85-100 W,46
+gpus,rx_480_8gb,RX 480 8GB,AMD,29.0-32.0 MH/s,90-110 W,49
+gpus,rx_570_4_8gb,RX 570 4/8GB,AMD,28.0-31.0 MH/s,85-100 W,47
+gpus,rx_580_8gb,RX 580 8GB,AMD,30.0-33.0 MH/s,85-100 W,50
+gpus,rx_590,RX 590,AMD,31.0-34.0 MH/s,100-120 W,52
+gpus,vega_56,Vega 56,AMD,45.0-50.0 MH/s,130-160 W,76
+gpus,vega_64,Vega 64,AMD,47.0-52.0 MH/s,150-180 W,79
+gpus,rx_5600_xt,RX 5600 XT,AMD,40.0-43.0 MH/s,95-110 W,66
+gpus,rx_5700,RX 5700,AMD,50.0-54.0 MH/s,105-125 W,83
+gpus,rx_5700_xt,RX 5700 XT,AMD,52.0-57.0 MH/s,110-130 W,87
+gpus,rx_6600,RX 6600,AMD,28.0-30.0 MH/s,50-60 W,46
+gpus,rx_6600_xt,RX 6600 XT,AMD,32.0-34.0 MH/s,55-65 W,53
+gpus,rx_6700_xt,RX 6700 XT,AMD,46.0-48.0 MH/s,105-125 W,75
+gpus,rx_6800,RX 6800,AMD,62.0-64.0 MH/s,135-155 W,101
+gpus,rx_6800_xt,RX 6800 XT,AMD,63.0-65.0 MH/s,145-165 W,102
+gpus,rx_6900_xt,RX 6900 XT,AMD,63.0-66.0 MH/s,150-175 W,103
+gpus,rx_7600,RX 7600,AMD,30.0-33.0 MH/s,70-85 W,50
+gpus,rx_7700_xt,RX 7700 XT,AMD,38.0-42.0 MH/s,120-150 W,64
+gpus,rx_7800_xt,RX 7800 XT,AMD,48.0-52.0 MH/s,150-180 W,80
+gpus,rx_7900_xt,RX 7900 XT,AMD,58.0-65.0 MH/s,220-260 W,98
+gpus,rx_7900_xtx,RX 7900 XTX,AMD,60.0-70.0 MH/s,240-300 W,104
+cases,case_6,6-Card Open-Air Frame,,6-card frame,,35
+cases,case_8,8-Card Open-Air Frame,,8-card frame,,45
+cases,case_12,12-Card Open-Air Frame,,12-card frame,,65
+cases,case_19,19-Card Mining Rack,,19-card frame,,95
+motherboards,mb_6slot,Biostar TB250-BTC (6 GPU),,6 GPU slots,,45
+motherboards,mb_8slot,Biostar TB360-BTC D+ (8 GPU),,8 GPU slots,,70
+motherboards,mb_12slot,Biostar TB360-BTC Pro (12 GPU),,12 GPU slots,,110
+motherboards,mb_19slot,ASUS B250 Mining Expert (19 GPU),,19 GPU slots,,200
+cpus,cpu_celeron,Intel Celeron G4900,,,,30
+cpus,cpu_pentium,Intel Pentium G4400,,,,45
+cpus,cpu_i3,Intel Core i3-8100,,,,75
+cpus,cpu_i5,Intel Core i5-9400,,,,110
+memory,ram_4gb,4GB DDR4 2400,,,,18
+memory,ram_8gb,8GB DDR4 2666,,,,28
+memory,ram_16gb,16GB DDR4 3200,,,,45
+ssd,ssd_120,120GB SATA SSD,,,,22
+ssd,ssd_240,240GB SATA SSD,,,,32
+ssd,ssd_500,500GB NVMe SSD,,,,50
+usb,usb_16,16GB USB 3.0 (boot),,,,8
+usb,usb_32,32GB USB 3.0 (boot),,,,12
+usb,usb_hdd,USB SSD 128GB (HiveOS),,,,30
+risers,riser_single,PCIe USB Riser (1x),,,,6
+risers,riser_6pack,PCIe USB Riser (6-pack),,,,30
+risers,riser_pro,Premium Riser w/ caps (6),,,,48
+fans,fan_120,120mm Case Fan,,,,8
+fans,fan_140,140mm High-RPM Fan,,,,12
+fans,fan_bar5,5-Fan Bar (1500 RPM),,,,43
+psus,psu_750,750W 80+ Gold PSU,,750W,,90
+psus,psu_1200,1200W 80+ Platinum,,1200W,,160
+psus,psu_1600,1600W 80+ Titanium,,1600W,,230
+psus,psu_2000,2000W Server PSU,,2000W,,140

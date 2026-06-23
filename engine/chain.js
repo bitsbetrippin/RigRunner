@@ -1,173 +1,339 @@
 /**
- * chain.js — mock testnet simulation engine
+ * chain.js — deterministic mock testnet engine (v0.3)
  *
- * Pure logic, no I/O, no DOM. Implements the model in ARCHITECTURE.md:
- *   work -> decaying stake-weight -> PoS reward split with commission.
- * A thin ChainSource interface sits on top so a real Tendermint RPC can replace
- * the mock later without touching the dashboards.
+ * Time-driven chain (unchanged): height = floor((now - GENESIS)/blockTimeSec),
+ * uniform across all players, reproducible via seeded per-block RNG.
+ *
+ * v0.3 — REAL-WORLD NETWORK SCALE + POOLS:
+ *   Anchored to late-2015 Ethereum: ETH ~$3.15, 5 ETH/block, 10s blocks, a
+ *   6-card ~168 MH/s rig earning ~$1,800/mo => the player is ~0.044% of a
+ *   ~381 GH/s global network. Solo mining is a genuine long-shot.
+ *
+ *   The network is modeled as 8 mining POOLS (~85% of global hashrate, taper
+ *   from ~20.5% down to ~6% of global) plus a SOLO FIELD (~15%) of independent
+ *   miners that includes the player. Each block has exactly one winning entity
+ *   (a pool or a solo miner), chosen by hash-weighted deterministic lottery.
+ *
+ *   Player can mine SOLO (winner-take-all, brutal variance) or join a POOL
+ *   (steady share of that pool's wins, paid every ~15 min, minus the pool fee).
+ *   Smaller pools charge lower fees => slightly higher net yield, but win less
+ *   often => lumpier payouts. Expected value before fees is identical everywhere.
+ *
+ * Units: hashrate is in MH/s throughout. Reward is in BBT (mapped from the ETH
+ * anchor: 5 ETH/block -> baseBlockReward BBT/block; tune freely).
  */
+
+/* Fixed recent genesis (shared by all players) keeps block height small so the
+   height-based halving doesn't zero out the reward. Must be a FIXED timestamp,
+   not "now at launch", or players' chains would diverge. */
+const GENESIS_MS = Date.UTC(2026, 5, 1, 0, 0, 0); // 2026-06-01T00:00:00Z
+
+/* ---- real-world-anchored constants ---- */
+const GLOBAL_HASH_MH = 381000;     // ~381 GH/s, early-Frontier Ethereum scale
+const POOL_FIELD_FRACTION = 0.85;  // pools hold 85% of global; 15% is solo field
+const POOL_PAYOUT_SEC = 900;       // ~15-minute pool payout windows
 
 const DEFAULTS = {
   chainId: 'rigrunner-testnet-1',
-  blockTimeSec: 6,
-  baseBlockReward: 5,
-  decayHalfLifeSec: 3600,
-  weightPerHashSec: 1 / 3600,   // weight measured in "hash-hours"
-  proposerBonusPct: 0.05,
+  blockTimeSec: 10,
+  baseBlockReward: 5,              // BBT per block (mirrors 5 ETH/block anchor)
+  // ~4-year halving like Bitcoin: at 10s blocks, 4yr ~= 12.6M blocks. Keeps the
+  // reward at a full 5 BBT for years instead of decaying within weeks.
+  halvingIntervalBlocks: 12614400,
+  rewardMode: 'solo',             // 'solo' | 'pool'
+  poolId: null,                   // which pool the player joined (when mode='pool')
 };
 
-/** Build a fresh mock network: player + 4 NPC validators. */
-function createNetwork(playerHashRate = 3300, now = Date.now()) {
-  const npc = [
-    { id: 'val_npc_1', moniker: 'Hashery',       hashRate: 4200, commissionRate: 0.08 },
-    { id: 'val_npc_2', moniker: 'BlockBarn',     hashRate: 2600, commissionRate: 0.12 },
-    { id: 'val_npc_3', moniker: 'StakeHouse',    hashRate: 5400, commissionRate: 0.05 },
-    { id: 'val_npc_4', moniker: 'GigaWatt Labs', hashRate: 1800, commissionRate: 0.15 },
-  ];
-  const validators = [
-    { id: 'val_player', moniker: 'Dorm Rig', isPlayer: true,
-      hashRate: playerHashRate, commissionRate: 0.10 },
-    ...npc.map(n => ({ ...n, isPlayer: false })),
-  ].map(v => ({
-    ...v,
-    // seed each near its equilibrium so the network starts "warm"
-    stakeWeight: equilibriumWeight(v.hashRate, DEFAULTS),
-    selfBalance: 0, delegatorPool: 0, uptime: 1, jailed: false,
-  }));
+/* Pool definitions: descending taper, realistic names + stratum ports + fees.
+   `weight` is the relative taper (normalized to POOL_FIELD_FRACTION of global). */
+const POOL_DEFS = [
+  { id:'dwarfpool',     name:'Dwarfpool',     host:'eu1.dwarfpool.example',     port:8008,  fee:0.020, weight:27   },
+  { id:'ethermine',     name:'Ethermine',     host:'eu1.ethermine.example',     port:4444,  fee:0.010, weight:21   },
+  { id:'f2pool',        name:'F2Pool',        host:'eth.f2pool.example',        port:6688,  fee:0.025, weight:16   },
+  { id:'nanopool',      name:'Nanopool',      host:'eth-eu1.nanopool.example',  port:9999,  fee:0.010, weight:12.5 },
+  { id:'ethpool',       name:'ethpool',       host:'eu.ethpool.example',        port:3333,  fee:0.015, weight:10   },
+  { id:'miningpoolhub', name:'MiningPoolHub', host:'eth.miningpoolhub.example', port:20535, fee:0.009, weight:9    },
+  { id:'coinotron',     name:'Coinotron',     host:'coinotron.example',         port:3344,  fee:0.008, weight:8.5  },
+  { id:'suprnova',      name:'Suprnova',      host:'eth.suprnova.example',      port:5000,  fee:0.005, weight:8    },
+];
+
+function buildPools() {
+  const wSum = POOL_DEFS.reduce((s,p)=>s+p.weight,0);
+  return POOL_DEFS.map(p => {
+    const globalShare = p.weight / wSum * POOL_FIELD_FRACTION;
+    return { ...p, globalShare, hashRate: Math.round(globalShare * GLOBAL_HASH_MH) };
+  });
+}
+
+/* ---- deterministic RNG ---- */
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function blockRng(height, salt = 0) {
+  return mulberry32(((height + 1) * 2654435761 ^ (salt * 40503)) >>> 0);
+}
+
+/**
+ * Build genesis network state.
+ * playerHashRate is in MH/s (a 6-card rig ~168).
+ */
+function createNetwork(playerHashRate = 168) {
+  const pools = buildPools();
+  const poolHashTotal = pools.reduce((s,p)=>s+p.hashRate,0);
+  const soloFieldHash = GLOBAL_HASH_MH - poolHashTotal; // ~15% incl. NPC solos + player
 
   return {
     network: {
-      ...DEFAULTS,
-      height: 0,
-      bondedWeight: validators.reduce((s, v) => s + v.stakeWeight, 0),
-      lastBlockAt: now,
-      createdAt: now,
+      ...DEFAULTS, genesisMs: GENESIS_MS, height: 0,
+      globalHashRate: GLOBAL_HASH_MH,
+      soloFieldHash,                 // independent miners (incl. player)
+      lastBlockAt: GENESIS_MS,
     },
-    validators,
+    pools,
+    player: {
+      id:'player', moniker:'Dorm Rig', isPlayer:true,
+      hashRate: playerHashRate,      // MH/s, set live from rigs
+      balance: 0, blocksWon: 0,
+      pendingPool: 0,                // unpaid pool earnings accruing toward payout
+      lastPayoutHeight: 0,
+    },
     blocks: [],
-    account: { balance: 0, pendingRewards: 0 },
+    account: { balance: 0 },
+    stats: { playerBlocksWon: 0, playerExpectedBlocks: 0, blocksSeen: 0,
+             poolPayouts: 0, feesPaid: 0 },
   };
 }
 
-/** Equilibrium weight for a constant hash rate H: W* = H * wph * halfLife / ln2. */
-function equilibriumWeight(H, cfg = DEFAULTS) {
-  return H * cfg.weightPerHashSec * cfg.decayHalfLifeSec / Math.LN2;
+function currentBlockReward(net) {
+  return net.baseBlockReward / Math.pow(2, Math.floor(net.height / net.halvingIntervalBlocks));
 }
-
-/** Deterministic-ish mock block hash from height+time. */
+function rewardAtHeight(net, height) {
+  return net.baseBlockReward / Math.pow(2, Math.floor(height / net.halvingIntervalBlocks));
+}
 function mockHash(height, time) {
   let h = (height * 2654435761) ^ (time & 0xffffffff);
   h = (h ^ (h >>> 13)) >>> 0;
   return '0x' + h.toString(16).padStart(8, '0') + (time % 100000).toString(16).padStart(5, '0');
 }
 
-/** Seeded PRNG so proposer selection is reproducible per (height). */
-function rng(seed) {
-  let s = seed >>> 0;
-  return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
+function heightForTime(net, nowMs = Date.now()) {
+  return Math.max(0, Math.floor((nowMs - net.genesisMs) / (net.blockTimeSec * 1000)));
+}
+function timeForHeight(net, height) { return net.genesisMs + height * net.blockTimeSec * 1000; }
+
+/* ---- the entity list for the lottery ----
+   Each block, one ENTITY wins: a pool, the player's solo field minus player,
+   or the player. We model the solo field as: player (if solo) + "independents".
+   In pool mode, the player's hashrate is folded into their chosen pool. */
+function buildEntities(state) {
+  const net = state.network;
+  const p = state.player;
+  const inPool = net.rewardMode === 'pool' && net.poolId;
+  const entities = [];
+
+  for (const pool of state.pools) {
+    let hr = pool.hashRate;
+    if (inPool && pool.id === net.poolId) hr += p.hashRate; // player joins this pool
+    entities.push({ kind:'pool', id:pool.id, name:pool.name, hashRate:hr, fee:pool.fee });
+  }
+
+  if (inPool) {
+    // player folded into a pool; solo field is just independents
+    entities.push({ kind:'independents', id:'independents', name:'Independent miners',
+      hashRate: net.soloFieldHash, fee:0 });
+  } else {
+    // solo: player is their own entity; independents are the rest of the field
+    const indep = Math.max(0, net.soloFieldHash - 0); // player hash is ON TOP of global model
+    entities.push({ kind:'player', id:'player', name:p.moniker, hashRate: p.hashRate, fee:0 });
+    entities.push({ kind:'independents', id:'independents', name:'Independent miners',
+      hashRate: indep, fee:0 });
+  }
+  return entities;
 }
 
-/** Pick a proposer index weighted by stakeWeight. */
-function pickProposer(validators, bondedWeight, rand) {
-  let r = rand() * bondedWeight;
-  for (let i = 0; i < validators.length; i++) {
-    r -= validators[i].stakeWeight;
-    if (r <= 0) return i;
-  }
-  return validators.length - 1;
+function totalEntityHash(entities) { return entities.reduce((s,e)=>s+e.hashRate,0); }
+
+function pickWinner(entities, total, r) {
+  let acc = r * total;
+  for (let i=0;i<entities.length;i++){ acc -= entities[i].hashRate; if (acc<=0) return i; }
+  return entities.length-1;
 }
 
 /**
- * Advance the chain by `dtSec` seconds of simulated time.
- * Mutates and returns state. Pure w.r.t. inputs (deterministic given seedSalt).
- * `maxCatchupSec` caps offline fast-forward.
+ * Sync chain to wall-clock time. Processes blocks between processed height and
+ * the canonical current height. Player earnings depend on solo vs pool mode.
  */
-function advance(state, dtSec, maxCatchupSec = 24 * 3600) {
-  const cfg = state.network;
-  let remaining = Math.min(Math.max(0, dtSec), maxCatchupSec);
+function syncToTime(state, nowMs = Date.now(), maxBlocksPerCall = 5000) {
+  const net = state.network;
+  const target = heightForTime(net, nowMs);
+  if (target <= net.height) return state;
 
-  // We step in block-sized chunks so weight + blocks stay consistent.
-  const step = cfg.blockTimeSec;
-  while (remaining > 0) {
-    const dt = Math.min(step, remaining);
-    remaining -= dt;
-
-    // 1. decay + work gain for every validator
-    const decay = Math.pow(0.5, dt / cfg.decayHalfLifeSec);
-    for (const v of state.validators) {
-      const gain = v.hashRate * cfg.weightPerHashSec * dt;
-      v.stakeWeight = v.stakeWeight * decay + gain;
-    }
-    // 2. recompute bonded weight
-    cfg.bondedWeight = state.validators.reduce((s, v) => s + v.stakeWeight, 0);
-
-    // 3. produce a block if it's time
-    cfg.lastBlockAt += dt * 1000;
-    if (dt >= step - 1e-9 && cfg.bondedWeight > 0) {
-      produceBlock(state);
-    }
+  const from = Math.max(net.height + 1, target - maxBlocksPerCall + 1);
+  // If a big gap was skipped, statistically credit it (keeps EV correct without
+  // replaying millions of blocks). Uses current hashrate snapshot.
+  if (from > net.height + 1) {
+    creditSkippedSpan(state, net.height + 1, from - 1);
+    net.height = from - 1;
   }
+  for (let h = from; h <= target; h++) {
+    processBlock(state, h, (target - h) < 60);
+  }
+  net.height = target;
+  net.lastBlockAt = timeForHeight(net, target);
+  maybePayPool(state, target, /*force=*/true);
+  state.account.balance = state.player.balance;
   return state;
 }
 
-function produceBlock(state) {
-  const cfg = state.network;
-  cfg.height += 1;
-  const rand = rng(cfg.height * 2246822519);
-  const pIdx = pickProposer(state.validators, cfg.bondedWeight, rand);
-  const proposer = state.validators[pIdx];
+/* Statistically credit a skipped span (long offline) without per-block RNG. */
+function creditSkippedSpan(state, h0, h1) {
+  const net = state.network;
+  const p = state.player;
+  const entities = buildEntities(state);
+  const total = totalEntityHash(entities);
+  const n = h1 - h0 + 1;
+  if (n <= 0 || total <= 0) return;
 
-  const distribution = {};
-  let minted = 0;
-  for (const v of state.validators) {
-    const share = v.stakeWeight / cfg.bondedWeight;
-    let gross = cfg.baseBlockReward * share;
-    if (v.id === proposer.id) gross += cfg.baseBlockReward * cfg.proposerBonusPct;
-    const commission = gross * v.commissionRate;
-    const delegated = gross - commission;
-    // player is self-delegated in v0.1 -> gets full gross
-    if (v.isPlayer) { v.selfBalance += gross; }
-    else { v.selfBalance += commission; v.delegatorPool += delegated; }
-    distribution[v.id] = gross;
-    minted += gross;
+  const reward = rewardAtHeight(net, h0); // ~constant across a span (halving is slow)
+  const inPool = net.rewardMode === 'pool' && net.poolId;
+
+  if (inPool) {
+    const pool = entities.find(e => e.kind==='pool' && e.id===net.poolId);
+    const playerShareOfPool = p.hashRate / pool.hashRate;
+    const poolWinProb = pool.hashRate / total;
+    // expected player BBT = n * reward * poolWinProb * playerShareOfPool * (1-fee)
+    const gross = n * reward * poolWinProb * playerShareOfPool;
+    const net_ = gross * (1 - pool.fee);
+    p.balance += net_; p.pendingPool = 0; p.lastPayoutHeight = h1;
+    state.stats.feesPaid += gross * pool.fee;
+    state.stats.poolPayouts += 1;
+    state.stats.blocksSeen += n;
+    state.stats.playerExpectedBlocks += n * (p.hashRate/total);
+  } else {
+    const playerProb = p.hashRate / total;
+    // deterministic-ish: expected whole blocks, plus Bernoulli remainder via RNG
+    const expected = n * playerProb;
+    let wins = Math.floor(expected);
+    const frac = expected - wins;
+    if (blockRng(h0)() < frac) wins += 1;
+    p.balance += wins * reward; p.blocksWon += wins;
+    state.stats.playerBlocksWon += wins;
+    state.stats.blocksSeen += n;
+    state.stats.playerExpectedBlocks += expected;
   }
-  state.account.balance = state.validators.find(v => v.isPlayer).selfBalance;
-
-  state.blocks.push({
-    height: cfg.height,
-    time: cfg.lastBlockAt,
-    proposer: proposer.id,
-    proposerMoniker: proposer.moniker,
-    reward: minted,
-    txCount: Math.floor(rand() * 40),
-    hash: mockHash(cfg.height, cfg.lastBlockAt),
-    distribution,
-  });
-  // cap stored blocks
-  if (state.blocks.length > 50) state.blocks = state.blocks.slice(-50);
 }
 
-/** ChainSource interface — the seam a real RPC will implement later. */
+function processBlock(state, height, record) {
+  const net = state.network;
+  const p = state.player;
+  const reward = rewardAtHeight(net, height);
+  const entities = buildEntities(state);
+  const total = totalEntityHash(entities);
+  const inPool = net.rewardMode === 'pool' && net.poolId;
+
+  // expected-blocks accounting for luck (player's raw share of global)
+  const playerGlobalShare = total>0 ? p.hashRate/total : 0;
+  state.stats.blocksSeen += 1;
+  state.stats.playerExpectedBlocks += playerGlobalShare;
+
+  const rng = blockRng(height);
+  const wi = pickWinner(entities, total, rng());
+  const winner = entities[wi];
+
+  let playerDelta = 0, playerWon = false;
+  if (inPool) {
+    const myPool = entities.find(e => e.kind==='pool' && e.id===net.poolId);
+    if (winner.id === net.poolId) {
+      // our pool won; accrue our fee-adjusted share into pending (paid every ~15min)
+      const myShareOfPool = p.hashRate / myPool.hashRate;
+      const gross = reward * myShareOfPool;
+      const netAmt = gross * (1 - myPool.fee);
+      p.pendingPool += netAmt;
+      state.stats.feesPaid += gross * myPool.fee;
+    }
+  } else {
+    if (winner.kind === 'player') {
+      p.balance += reward; p.blocksWon += 1; playerDelta = reward; playerWon = true;
+      state.stats.playerBlocksWon += 1;
+    }
+  }
+
+  // pay out pending pool earnings on the ~15min cadence
+  maybePayPool(state, height, false);
+
+  if (record) {
+    const t = timeForHeight(net, height);
+    state.blocks.push({
+      height, time: t, mode: net.rewardMode,
+      winnerKind: winner.kind, winnerId: winner.id, winnerName: winner.name,
+      playerWon, playerDelta, reward,
+      poolId: inPool ? net.poolId : null,
+      txCount: Math.floor(rng()*40), hash: mockHash(height, t),
+    });
+    if (state.blocks.length > 80) state.blocks = state.blocks.slice(-80);
+  }
+}
+
+/* Pay accrued pool earnings to balance every POOL_PAYOUT_SEC. */
+function maybePayPool(state, height, force) {
+  const net = state.network;
+  const p = state.player;
+  if (net.rewardMode !== 'pool') { return; }
+  const payoutEveryBlocks = Math.round(POOL_PAYOUT_SEC / net.blockTimeSec); // 90 blocks
+  if (force || (height - p.lastPayoutHeight) >= payoutEveryBlocks) {
+    if (p.pendingPool > 0) {
+      p.balance += p.pendingPool;
+      state.stats.poolPayouts += 1;
+      p.pendingPool = 0;
+    }
+    p.lastPayoutHeight = height;
+  }
+}
+
+/* ---- ChainSource interface ---- */
 function makeMockSource(getState) {
   return {
     getNetwork: () => getState().network,
-    getValidators: () => getState().validators.slice().sort((a, b) => b.stakeWeight - a.stakeWeight),
-    getLatestBlocks: (n = 12) => getState().blocks.slice(-n).reverse(),
+    getPools: () => getState().pools,
+    getPlayer: () => getState().player,
+    getLatestBlocks: (n=12) => getState().blocks.slice(-n).reverse(),
     getAccount: () => getState().account,
-    getPlayer: () => getState().validators.find(v => v.isPlayer),
+    getStats: () => getState().stats,
+    // validator-style ranked list for the explorer: pools + solo field + player
+    getEntities: () => {
+      const s = getState();
+      const ents = buildEntities(s).slice();
+      return ents.sort((a,b)=>b.hashRate-a.hashRate);
+    },
   };
 }
 
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { DEFAULTS, createNetwork, equilibriumWeight, advance, produceBlock, pickProposer, makeMockSource, mockHash, rng };
+function setPlayerHashRate(state, hrMH) { state.player.hashRate = Math.max(0, hrMH); }
+function setRewardMode(state, mode) { if (mode==='solo'||mode==='pool') state.network.rewardMode = mode; }
+function setPool(state, poolId) {
+  // null or a valid pool id; switching pools flushes pending to balance first
+  maybePayPool(state, state.network.height, true);
+  state.network.poolId = poolId;
+  if (poolId) state.network.rewardMode = 'pool'; else state.network.rewardMode = 'solo';
+  state.player.lastPayoutHeight = state.network.height;
 }
+function playerLuck(state) {
+  const e = state.stats.playerExpectedBlocks;
+  return e > 0 ? state.stats.playerBlocksWon / e : 1;
+}
+function poolById(state, id){ return state.pools.find(p=>p.id===id); }
 
-/* Integration helper: set the player validator's hash rate (e.g. rig online/offline,
-   or future GPU upgrades). Keeps the economy driven by the room's rig. */
-function setPlayerHashRate(state, hr){
-  const p = state.validators.find(v => v.isPlayer);
-  if (p) p.hashRate = Math.max(0, hr);
-}
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports.setPlayerHashRate = setPlayerHashRate;
+  module.exports = {
+    GENESIS_MS, GLOBAL_HASH_MH, POOL_FIELD_FRACTION, POOL_PAYOUT_SEC, DEFAULTS, POOL_DEFS,
+    createNetwork, buildPools, currentBlockReward, rewardAtHeight,
+    heightForTime, timeForHeight, syncToTime, processBlock, buildEntities, pickWinner,
+    makeMockSource, mockHash, setPlayerHashRate, setRewardMode, setPool, playerLuck, poolById, blockRng,
+  };
 }

@@ -1,63 +1,25 @@
-# Rig Runner — *Miner's Life*  ·  v0.1
+# Rig Runner - Miner's Life · v0.8
 
-A browser-based crypto-mining idle/sim game. Build and run GPU mining rigs, earn
-**BBT**, and climb a validator network. Runs entirely in the browser — no build
-step, no install. Open `index.html`.
+Browser-based crypto-mining sim. Create an account, pick a miner + occupation,
+earn weekly USD, trade USD<->BBT on the dorm laptop exchange, buy parts, build &
+name rigs, watch your circuits, assign rigs to pools, and mine. Open index.html
+(or serve: python3 -m http.server 8000).
 
-## Play
+## New in v0.8
+- Electrical system: Dorm = one 20A/120V circuit, Garage = two 30A/240V, Shack =
+  200A service with 6x30A panels + 6-plug PDUs (36 plugs, ~18 rigs). Soft cap:
+  over-safe warns, over-breaker trips and throttles. Stats > Power, per-room subtabs.
+- Console: stale (~0.1%) + rejected (0.5-1.3%) share statuses.
+- Exchange: 1m/5m/1h/1d/1w candle toggles, right-side price axis, live order book.
+- GPU-typed miner software (NVIDIA T-Rex / AMD TeamRedMiner) themes the console.
 
-Open `index.html` in any modern browser, or serve the folder (recommended — see
-below). Click **START GAME** (or LOAD) to enter your dorm, tap the rig, and go.
+## Core loop
+Occupation pays weekly USD (week 1 full, then 15%/wk). Convert USD->BBT on the
+laptop exchange. Buy parts (49 GPUs + components), assemble rigs (case + matching
+mobo 6/8/12/19 + CPU + memory + boot drive + risers + PSU + >=2 GPUs), place in
+owned locations within their circuit limits. Solo or pool mining; ~381 GH/s
+network, 8 pools, 10s blocks, ~4yr halving, 5 BBT reward.
 
-```
-index.html        → title screen (START / LOAD / LEADERBOARDS)
-game.html         → dorm room + mining console + node dashboard + block explorer
-```
-
-> Some browsers restrict `localStorage` and asset loading over `file://`. If
-> saves don't persist or images don't load, serve the folder locally:
->
-> ```bash
-> python3 -m http.server 8000   # then visit http://localhost:8000
-> ```
-
-## What's here
-
-| Path | What it is |
-|---|---|
-| `index.html` | Interactive title screen; routes to the game |
-| `game.html` | Room, mining console, validator dashboard, block explorer |
-| `engine/chain.js` | Mock testnet engine — decaying work-weight → PoS rewards |
-| `assets/` | Pixel-art room + title-screen images |
-| `docs/ARCHITECTURE.md` | Network model & design spec |
-| `CHANGELOG.md` | Version history (starts at 0.1) |
-
-## Core concepts
-
-- **Token: BBT.** All balances and rewards are denominated in BBT.
-- **Rigs are independent machines.** Each rig has its own state machine
-  (`OFFLINE → STARTUP → MINING → STOPPING`) and hashrate. Only rigs that are
-  MINING contribute. Total live hashrate is the sum across all rigs.
-- **Mining console.** A procedural, CRT-styled scrolling miner log. Boots and
-  builds the DAG on a fresh power-on, then scrolls forever (200-line ring buffer,
-  loops seamlessly). OFFLINE shows a dark screen; STOPPING shows a shutdown.
-- **Network model.** GPU work → decaying **stake-weight** → block rewards split by
-  **stake-share** (with validator commission), settled to a mock database behind a
-  `ChainSource` interface a real Tendermint/Cosmos RPC can replace later. Full
-  detail in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
-
-## Roadmap / TODO
-
-- Per-GPU **sound** (blower vs. open-fan cards; rig spin-up) — provided per-asset later
-- GPU **upgrade & purchasing** mechanics
-- **Multiple rigs** in the room (engine already supports N)
-- **Player movement** / explorable room
-- **Real leaderboards** (currently routes to the explorer)
-- **Save slots** (START vs LOAD as distinct behaviors)
-- Real **Tendermint/Cosmos testnet** deployment (interface ready)
-- **Delegation, slashing,** dynamic NPC validators
-
-## Assets & credits
-
-Pixel art is the author's own work. BBT and the in-game network are fictional;
-this is a game, not financial software.
+## Data (CSV-editable)
+docs/occupations.csv, docs/parts_pricing.csv. Fee tiers/volatility in
+engine/market.js; circuit layouts in engine/electrical.js. A game, not financial software.

@@ -1,0 +1,51 @@
+id,name,annual_salary_USD,weekly_salary_USD
+fast_food_worker,Fast Food Worker,30150,579.81
+cashier,Cashier,31060,597.31
+dishwasher,Dishwasher,32530,625.58
+retail_salesperson,Retail Salesperson,35340,679.62
+janitor,Janitor,36410,700.19
+home_health_aide,Home Health Aide,36140,695.0
+waiter_waitress,Waiter / Waitress,36530,702.5
+security_guard,Security Guard,39920,767.69
+landscaper,Landscaper,40450,777.88
+childcare_worker,Childcare Worker,35460,681.92
+bank_teller,Bank Teller,38670,743.65
+receptionist,Receptionist,38410,738.65
+warehouse_worker,Warehouse Worker,39550,760.58
+delivery_driver,Delivery Driver,41890,805.58
+bartender,Bartender,36870,709.04
+customer_service_rep,Customer Service Rep,42390,815.19
+cook,Cook,37310,717.5
+medical_assistant,Medical Assistant,44200,850.0
+office_clerk,Office Clerk,43230,831.35
+dental_assistant,Dental Assistant,47350,910.58
+truck_driver,Truck Driver,54320,1044.62
+administrative_assistant,Administrative Assistant,47510,913.65
+bookkeeper,Bookkeeper,47440,912.31
+hvac_technician,HVAC Technician,59810,1150.19
+electrician,Electrician,62350,1199.04
+plumber,Plumber,61550,1183.65
+carpenter,Carpenter,58210,1119.42
+welder,Welder,51360,987.69
+auto_mechanic,Auto Mechanic,49670,955.19
+firefighter,Firefighter,57120,1098.46
+police_officer,Police Officer,74910,1440.58
+paramedic_emt,Paramedic / EMT,41680,801.54
+real_estate_agent,Real Estate Agent,65850,1266.35
+graphic_designer,Graphic Designer,62290,1197.88
+teacher_k_12,Teacher (K-12),66490,1278.65
+registered_nurse,Registered Nurse,94480,1816.92
+accountant,Accountant,81680,1570.77
+marketing_manager,Marketing Manager,161030,3096.73
+financial_analyst,Financial Analyst,101910,1959.81
+mechanical_engineer,Mechanical Engineer,102320,1967.69
+civil_engineer,Civil Engineer,100450,1931.73
+electrical_engineer,Electrical Engineer,111910,2152.12
+software_developer,Software Developer,133080,2559.23
+data_scientist,Data Scientist,112590,2165.19
+pharmacist,Pharmacist,137480,2643.85
+lawyer,Lawyer,176470,3393.65
+dentist,Dentist,191750,3687.5
+physician,Physician,239200,4600.0
+it_manager,IT Manager,171200,3292.31
+architect,Architect,96690,1859.42
