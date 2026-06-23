@@ -23,7 +23,10 @@
  * anchor: 5 ETH/block -> baseBlockReward BBT/block; tune freely).
  */
 
-const GENESIS_MS = Date.UTC(2026, 0, 1, 0, 0, 0);
+/* Fixed recent genesis (shared by all players) keeps block height small so the
+   height-based halving doesn't zero out the reward. Must be a FIXED timestamp,
+   not "now at launch", or players' chains would diverge. */
+const GENESIS_MS = Date.UTC(2026, 5, 1, 0, 0, 0); // 2026-06-01T00:00:00Z
 
 /* ---- real-world-anchored constants ---- */
 const GLOBAL_HASH_MH = 381000;     // ~381 GH/s, early-Frontier Ethereum scale
@@ -34,7 +37,9 @@ const DEFAULTS = {
   chainId: 'rigrunner-testnet-1',
   blockTimeSec: 10,
   baseBlockReward: 5,              // BBT per block (mirrors 5 ETH/block anchor)
-  halvingIntervalBlocks: 50000,
+  // ~4-year halving like Bitcoin: at 10s blocks, 4yr ~= 12.6M blocks. Keeps the
+  // reward at a full 5 BBT for years instead of decaying within weeks.
+  halvingIntervalBlocks: 12614400,
   rewardMode: 'solo',             // 'solo' | 'pool'
   poolId: null,                   // which pool the player joined (when mode='pool')
 };

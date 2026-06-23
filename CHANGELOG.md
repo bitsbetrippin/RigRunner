@@ -3,6 +3,31 @@
 All notable changes to Rig Runner / *Miner's Life* are tracked here.
 Format loosely follows Keep a Changelog. Dates are YYYY-MM-DD.
 
+## [0.3.1] — 2026-06-22
+
+### Fixed
+- **Won blocks showed 0 BBT earned.** Root cause: the chain anchors to a fixed
+  genesis, so by playtime the block height was already ~1.5M. Combined with the
+  50,000-block (BTC-style) halving, the reward had halved ~29 times down to
+  ~0.000000009 BBT — effectively zero. Fixed two ways:
+  - Moved the shared genesis to a fixed **2026-06-01** (height now ~190k instead
+    of ~1.5M), still uniform across all players.
+  - Lengthened the halving interval to **~4 years** (12,614,400 blocks at 10s),
+    matching Bitcoin's cadence, so the reward stays a full **5 BBT** for years
+    rather than decaying within weeks.
+  - Save key bumped to `v0_3_1` so the corrected genesis/reward take effect (old
+    saves carried the broken chain state).
+- **Mining console showed a hardcoded pool** instead of the selected pool. The
+  console now reflects the real mining target everywhere (boot/connect lines,
+  "new job" lines, shutdown, title bar, footer), and shows a distinct solo
+  endpoint when solo mining.
+
+### Changed
+- **Changing the pool now restarts the rig** (real miners must reconnect):
+  switching pools (or to/from solo) bounces a running rig through STARTUP so the
+  console replays the boot/DAG sequence under the new pool. Switching also flushes
+  pending pool earnings to balance first.
+
 ## [0.3] — 2026-06-22
 
 Scales the network to real-world early-Ethereum economics and adds an 8-pool

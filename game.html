@@ -136,7 +136,7 @@
 </head>
 <body>
 <header>
-  <div class="brand">RIG RUNNER &middot; DORM 1 <span class="ver">v0.3</span></div>
+  <div class="brand">RIG RUNNER &middot; DORM 1 <span class="ver">v0.3.1</span></div>
   <div class="hud">
     <span class="coin" id="hudCoin">&#9923; 0 BBT</span>
     <span class="rate" id="hudRate">0 H/s</span>
@@ -170,6 +170,7 @@
   </div>
   <div class="crtFoot">
     <span id="crtStatus">&hellip;</span>
+    <span id="crtTarget" style="color:#2f7d48"></span>
     <button class="crtBtn" id="crtPower">POWER</button>
   </div>
 </div>
@@ -214,8 +215,18 @@ function rigDrawW(r){ return r.state==='OFFLINE' ? 0 : rigWatts(r); }       // w
 function totalDrawW(){ return RIGS.reduce((s,r)=>s+rigDrawW(r),0); }
 function totalBtu(){ return wattsToBtu(totalDrawW()); }
 
+/* Current mining target for the console: the selected pool, or a solo endpoint.
+   Returns { name, host, port, label } so the console can show real names/ports. */
+function miningTarget(){
+  if(APP.settings.poolId){
+    const p=poolById(APP.chain, APP.settings.poolId);
+    if(p) return { name:p.name, host:p.host, port:p.port, label:p.host+':'+p.port, solo:false };
+  }
+  return { name:'Solo', host:'solo.dorm-rig.local', port:8545, label:'solo.dorm-rig.local:8545 (solo)', solo:true };
+}
+
 /* ---- persistence: rig states + chain + settings/economy ---- */
-const KEY='rigrunner:integrated:v0_3';
+const KEY='rigrunner:integrated:v0_3_1';
 let APP;
 (function init(){
   let loaded=null;
@@ -349,9 +360,28 @@ function openRigStats(rig){
   document.getElementById('closeRig').onclick=()=>backdrop.classList.remove('open');
   document.getElementById('poolSel').onchange=(e)=>{
     const v=e.target.value;
+    const prevPool=APP.settings.poolId; // for change detection
     if(v==='solo'){ APP.settings.poolId=null; setPool(APP.chain, null); }
     else { APP.settings.poolId=v; setPool(APP.chain, v); }
-    APP.settings.rewardMode=APP.chain.network.rewardMode; save(); openRigStats(rig);
+    APP.settings.rewardMode=APP.chain.network.rewardMode;
+    // Changing the mining target requires the miner to reconnect: restart any rig
+    // that's currently running so it boots under the new pool.
+    const changed = (v==='solo'? prevPool!=null : prevPool!==v);
+    if(changed){
+      RIGS.forEach(r=>{
+        if(r.state==='MINING' || r.state==='STARTUP'){
+          // bounce through a restart: stop, then start, so the console shows the
+          // reconnect under the new pool.
+          r.state='STARTUP'; r.shares=0; r.jobId=1;
+          if(!(consoleRig===r && consoleEl.classList.contains('open'))){
+            setTimeout(((rr)=>()=>{ if(rr.state==='STARTUP'){ rr.state='MINING'; save(); render(); } })(r), 3500);
+          }
+        }
+      });
+      // if the console is open on a rig, replay its boot under the new pool
+      if(consoleRig){ updateConsoleChrome(); if(consoleRig.state==='STARTUP'){ logLines=[]; renderLog(); refreshConsoleForState(consoleRig,true); } }
+    }
+    save(); openRigStats(rig);
   };
   const setPw=(lvl)=>{ rig.power=lvl; setPlayerHashRate(APP.chain, networkHashFromRigs()); save(); openRigStats(rig); };
   document.getElementById('pwLow').onclick=()=>setPw('low');
@@ -394,6 +424,7 @@ const crtLog=document.getElementById('crtLog');
 const crtStatus=document.getElementById('crtStatus');
 const crtEmpty=document.getElementById('crtEmpty');
 const crtTitle=document.getElementById('crtTitle');
+const crtTarget=document.getElementById('crtTarget');
 const crtPower=document.getElementById('crtPower');
 let consoleTimer=null, consoleRig=null;
 const MAX_LINES=200;
@@ -416,9 +447,15 @@ function pushLine(html, cls){
 function openConsole(rig){
   consoleRig=rig;
   consoleEl.classList.add('open');
-  crtTitle.textContent=rig.label.toUpperCase()+' \u00B7 MINING CONSOLE';
+  updateConsoleChrome();
   logLines=[]; renderLog();
   refreshConsoleForState(rig, true);
+}
+/* keep the title bar + footer target in sync with the selected pool */
+function updateConsoleChrome(){
+  const tgt=miningTarget();
+  if(consoleRig) crtTitle.textContent=consoleRig.label.toUpperCase()+' \u00B7 '+(tgt.solo?'SOLO':tgt.name.toUpperCase());
+  crtTarget.innerHTML = (tgt.solo?'solo':'pool')+' <b>'+tgt.label+'</b>';
 }
 function closeConsole(){
   consoleEl.classList.remove('open');
@@ -444,7 +481,8 @@ function refreshConsoleForState(rig, justOpened){
     crtStatus.innerHTML='MINING <span class="crtCursor"></span>';
     // if opened fresh into an already-mining rig, seed a little context (no DAG replay)
     if(justOpened && logLines.length===0){
-      pushLine('ETH: Resuming session \u2014 '+rig.count+' GPUs online', 'c-ok');
+      const tgt=miningTarget();
+      pushLine('ETH: Resuming session on '+(tgt.solo?'SOLO':tgt.name)+' \u2014 '+rig.count+' GPUs online', 'c-ok');
     }
     loopMining(rig);
   }
@@ -452,16 +490,17 @@ function refreshConsoleForState(rig, justOpened){
 
 function bootSequence(rig){
   const gpu=rigGpu(rig);
+  const tgt=miningTarget();
   crtStatus.textContent='initializing\u2026';
   const steps=[
     ['RIG RUNNER miner v0.9.2 \u2014 '+rig.count+'x '+gpu.name, 'c-ok', 250],
     ['Loading OpenCL platform AMD Accelerated Parallel Processing\u2026', 'c-dim', 350],
     ...Array.from({length:rig.count},(_,i)=>['Detected GPU'+i+': '+gpu.name+'  '+gpu.watts+'W  16GB', 'c-eth', 150]),
-    ['Connecting to pool us2.rigrunner-pool:4444 \u2026', 'c-job', 380],
-    ['Authorized. Subscribed to mining.notify', 'c-ok', 280],
+    [(tgt.solo?'Starting SOLO miner \u2014 local node ':'Connecting to pool '+tgt.name+' ')+tgt.label+' \u2026', 'c-job', 380],
+    [tgt.solo?'Solo mode \u2014 mining directly to your wallet':'Authorized on '+tgt.name+'. Subscribed to mining.notify', 'c-ok', 280],
     ...Array.from({length:rig.count},(_,i)=>['Building DAG for GPU'+i+' \u2026 epoch 482', 'c-dim', 200]),
     ['DAG generation complete ('+rig.count+' GPUs) \u2014 '+(3*rig.count)+'.0 GB', 'c-ok', 320],
-    ['ETH: Mining started. target '+(rigGpu(rig).mhPerCard*rig.count).toFixed(1)+' Mh/s ('+fmt(rigFullHash(rig))+' MH/s)', 'c-eth', 300],
+    ['ETH: Mining started on '+(tgt.solo?'SOLO':tgt.name)+'. target '+(rigGpu(rig).mhPerCard*rig.count).toFixed(1)+' Mh/s ('+fmt(rigFullHash(rig))+' MH/s)', 'c-eth', 300],
   ];
   let i=0;
   (function next(){
@@ -484,7 +523,7 @@ function stopSequence(rig){
   const steps=[
     ['ETH: Stopping mining \u2014 flushing work\u2026', 'c-warn', 400],
     ...Array.from({length:rig.count},(_,i)=>['GPU'+i+' halted, fan spindown', 'c-gpu', 180]),
-    ['ETH: Disconnected from pool us2.rigrunner-pool:4444', 'c-dim', 350],
+    ['ETH: Disconnected from '+(miningTarget().solo?'solo node':miningTarget().name+' '+miningTarget().label), 'c-dim', 350],
     ['ETH: Miner stopped. '+rig.shares+' shares this session.', 'c-warn', 300],
   ];
   let i=0;
@@ -516,7 +555,7 @@ function loopMining(rig){
       line+='GPU'+i+' t='+t+'C fan='+fan+'%'+(i<rig.count-1?', ':''); }
     pushLine(line,'c-gpu');
   } else if(roll<0.72){
-    pushLine('ETH: '+nowClock()+' \u2014 New job #'+(rig.jobId++).toString(16)+' from us2.rigrunner-pool:4444', 'c-job');
+    pushLine('ETH: '+nowClock()+' \u2014 New job #'+(rig.jobId++).toString(16)+' from '+miningTarget().label, 'c-job');
   } else if(roll<0.90){
     const g=Math.floor(Math.random()*rig.count);
     pushLine('ETH: '+nowClock()+' \u2014 SHARE FOUND \u2014 (GPU '+g+')', 'c-share');
