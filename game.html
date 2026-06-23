@@ -136,7 +136,7 @@
 </head>
 <body>
 <header>
-  <div class="brand">RIG RUNNER &middot; DORM 1 <span class="ver">v0.1</span></div>
+  <div class="brand">RIG RUNNER &middot; DORM 1 <span class="ver">v0.3</span></div>
   <div class="hud">
     <span class="coin" id="hudCoin">&#9923; 0 BBT</span>
     <span class="rate" id="hudRate">0 H/s</span>
@@ -193,7 +193,9 @@
    ========================================================================= */
 
 /* ---- GPU + rig definitions ---- */
-const GPU_CATALOG={ rx6800:{ name:'AMD RX 6800', hashPerCard:550, watts:230, mhPerCard:28 } };
+/* GPU hashrate in MH/s (real-world scale: ~28 MH/s per RX 6800-class card in 2015-16).
+   A 6-card rig ~168 MH/s = ~0.044% of the 381 GH/s global network. */
+const GPU_CATALOG={ rx6800:{ name:'AMD RX 6800', mhPerCard:28, watts:230 } };
 
 /* Rig factory: each rig is independent. Add more rigs to RIGS[] later. */
 function makeRig(id,label,gpu,count){
@@ -205,7 +207,7 @@ function makeRig(id,label,gpu,count){
 const RIGS=[ makeRig('rig1','Rig 01 \u00B7 Desk','rx6800',6) ];
 
 function rigGpu(r){ return GPU_CATALOG[r.gpu]; }
-function rigFullHash(r){ return rigPowerHash(r, rigGpu(r).hashPerCard); } // power-scaled nameplate H/s
+function rigFullHash(r){ return rigPowerHash(r, rigGpu(r).mhPerCard); } // power-scaled MH/s
 function rigLiveHash(r){ return r.state==='MINING' ? rigFullHash(r) : 0; } // contributes only while mining
 function networkHashFromRigs(){ return RIGS.reduce((s,r)=>s+rigLiveHash(r),0); }
 function rigDrawW(r){ return r.state==='OFFLINE' ? 0 : rigWatts(r); }       // watts when on
@@ -213,7 +215,7 @@ function totalDrawW(){ return RIGS.reduce((s,r)=>s+rigDrawW(r),0); }
 function totalBtu(){ return wattsToBtu(totalDrawW()); }
 
 /* ---- persistence: rig states + chain + settings/economy ---- */
-const KEY='rigrunner:integrated:v0_2';
+const KEY='rigrunner:integrated:v0_3';
 let APP;
 (function init(){
   let loaded=null;
@@ -222,8 +224,8 @@ let APP;
     APP=loaded;
     RIGS.forEach(r=>{ const sv=APP.rigs.find(x=>x.id===r.id); if(sv){ r.state=sv.state; r.power=sv.power||'normal'; r.shares=sv.shares||0; r.jobId=sv.jobId||1; } });
     setPlayerHashRate(APP.chain, networkHashFromRigs());
-    if(APP.settings && APP.settings.rewardMode) setRewardMode(APP.chain, APP.settings.rewardMode);
-    // accrue power for real elapsed time since last sync (capped), then sync chain to NOW
+    // restore pool/solo selection
+    if(APP.settings){ if(APP.settings.poolId) setPool(APP.chain, APP.settings.poolId); else setRewardMode(APP.chain,'solo'); }
     const lastSync=APP.econ.lastSyncMs||Date.now();
     const elapsedSec=Math.min((Date.now()-lastSync)/1000, 86400);
     if(elapsedSec>0) APP.econ.kwhUsed += kwh(totalDrawW(), elapsedSec/3600);
@@ -233,13 +235,14 @@ let APP;
     RIGS[0].state='MINING';
     const chain=createNetwork(networkHashFromRigs());
     setRewardMode(chain,'solo');
-    syncToTime(chain, Date.now()); // bring chain up to the shared timeline now
+    syncToTime(chain, Date.now());
     APP={ chain,
-      settings:{ costPerKwh:ECON_DEFAULTS.costPerKwh, rewardMode:'solo' },
+      settings:{ costPerKwh:ECON_DEFAULTS.costPerKwh, rewardMode:'solo', poolId:null },
       econ:{ bbtUsd:ECON_DEFAULTS.bbtUsd, kwhUsed:0, billStartAt:Date.now(), lastSyncMs:Date.now() } };
   }
   // defensive defaults
-  if(!APP.settings) APP.settings={ costPerKwh:ECON_DEFAULTS.costPerKwh, rewardMode:'solo' };
+  if(!APP.settings) APP.settings={ costPerKwh:ECON_DEFAULTS.costPerKwh, rewardMode:'solo', poolId:null };
+  if(APP.settings.poolId===undefined) APP.settings.poolId=null;
   if(!APP.econ) APP.econ={ bbtUsd:ECON_DEFAULTS.bbtUsd, kwhUsed:0, billStartAt:Date.now(), lastSyncMs:Date.now() };
   if(APP.econ.lastSyncMs===undefined) APP.econ.lastSyncMs=Date.now();
   syncRigsToApp(); save();
@@ -250,27 +253,24 @@ const SRC=makeMockSource(()=>APP.chain);
 
 /* ---- live tick: render-rate-independent; chain advances by WALL-CLOCK TIME ---- */
 let shareHistory=[], priceHistory=[];
+function playerGlobalShare(){ const net=SRC.getNetwork(); const p=SRC.getPlayer(); return net.globalHashRate>0 ? p.hashRate/net.globalHashRate : 0; }
 function tick(){
   const now=Date.now();
   setPlayerHashRate(APP.chain, networkHashFromRigs());
-  setRewardMode(APP.chain, APP.settings.rewardMode);
 
   // accrue power + price by REAL elapsed time since last sync (not per-tick constant)
   const elapsedSec=Math.max(0,(now-(APP.econ.lastSyncMs||now))/1000);
   if(elapsedSec>0){
     APP.econ.kwhUsed += kwh(totalDrawW(), elapsedSec/3600);
-    // price drift scaled to elapsed time (roughly one drift step per ~2s)
     const steps=Math.max(1,Math.round(elapsedSec/2));
     for(let i=0;i<steps && i<10;i++) APP.econ.bbtUsd=driftPrice(APP.econ.bbtUsd, Math.random());
   }
   APP.econ.lastSyncMs=now;
 
-  // sync the deterministic chain to the current wall-clock time
   syncToTime(APP.chain, now);
 
   priceHistory.push(APP.econ.bbtUsd); if(priceHistory.length>60) priceHistory.shift();
-  const p=SRC.getPlayer(), net=SRC.getNetwork();
-  shareHistory.push(p.stakeWeight/net.bondedWeight);
+  shareHistory.push(playerGlobalShare());
   if(shareHistory.length>60) shareHistory.shift();
   save(); render();
 }
@@ -301,33 +301,45 @@ const backdrop=document.getElementById('backdrop'), sheet=document.getElementByI
 let activeRig=RIGS[0];
 function openRigStats(rig){
   activeRig=rig;
-  const gpu=rigGpu(rig); const full=rigFullHash(rig); const totalW=gpu.watts*rig.count;
-  const p=SRC.getPlayer(), net=SRC.getNetwork(); const share=p.stakeWeight/net.bondedWeight;
+  const gpu=rigGpu(rig); const full=rigFullHash(rig);
+  const p=SRC.getPlayer(), net=SRC.getNetwork();
+  const share=net.globalHashRate>0 ? rigLiveHash(rig)/net.globalHashRate : 0;
   const mining = rig.state==='MINING';
+  const perCardMh=rigPowerHash(rig, gpu.mhPerCard)/rig.count;
   let rows='';
   for(let i=0;i<rig.count;i++){
     rows+='<div class="gpuRow"><span class="dot '+(mining?'':'off')+'"></span><div class="info">'+
       '<div class="name">'+gpu.name+' <span style="color:var(--textFaint)">\u00B7 slot '+(i+1)+'</span></div>'+
       '<div class="meta">'+gpu.watts+' W \u00B7 '+rig.state+'</div></div>'+
-      '<div class="rate">'+(mining?gpu.hashPerCard:0)+' H/s</div></div>';
+      '<div class="rate">'+(mining?perCardMh.toFixed(0):0)+' MH/s</div></div>';
   }
   const watts=rigDrawW(rig)||rigWatts(rig);
   const btu=Math.round(wattsToBtu(watts));
+  // pool selector options
+  const pools=SRC.getPools();
+  let poolOpts='<option value="solo"'+(APP.settings.poolId?'':' selected')+'>\u26A1 Solo (winner-take-all)</option>';
+  pools.forEach(pl=>{ poolOpts+='<option value="'+pl.id+'"'+(APP.settings.poolId===pl.id?' selected':'')+'>'+pl.name+' \u00B7 '+(pl.fee*100).toFixed(1)+'% fee \u00B7 '+(pl.globalShare*100).toFixed(1)+'% net</option>'; });
+  const curPool=APP.settings.poolId?poolById(APP.chain,APP.settings.poolId):null;
+  const poolLine=curPool? curPool.name+' \u00B7 '+curPool.host+':'+curPool.port+' \u00B7 '+(curPool.fee*100).toFixed(1)+'% fee'
+                        : 'Solo mining \u00B7 you vs. the whole network';
   sheet.innerHTML='<div class="sheetHead"><div><h2>'+rig.label+'</h2>'+
     '<div class="sub">'+rig.count+'\u00D7 '+gpu.name+' \u00B7 '+rig.state+'</div></div>'+
     '<button class="closeX" id="closeRig">\u00D7</button></div>'+
     '<div class="totals">'+
-    '<div class="tcard"><div class="v" style="color:var(--phosphor)">'+fmt(rigLiveHash(rig))+'</div><div class="l">H/s LIVE</div></div>'+
+    '<div class="tcard"><div class="v" style="color:var(--phosphor)">'+fmt(rigLiveHash(rig))+'</div><div class="l">MH/s LIVE</div></div>'+
     '<div class="tcard"><div class="v" style="color:var(--amber)">'+fmt(watts)+'</div><div class="l">WATTS</div></div>'+
     '<div class="tcard"><div class="v" style="color:var(--amber)">'+fmt(btu)+'</div><div class="l">BTU/HR</div></div>'+
     '</div>'+
+    '<div class="cardsLabel">Mining target</div>'+
+    '<select id="poolSel" style="width:100%;background:var(--panelHi);color:var(--text);border:1px solid var(--grid);border-radius:10px;padding:12px;font-family:var(--mono);font-size:13px">'+poolOpts+'</select>'+
+    '<div class="s" style="color:var(--textDim);font-size:11px;margin-top:6px">'+poolLine+'</div>'+
     '<div class="cardsLabel">Power setting</div>'+
     '<div class="navBtns" style="margin-top:0">'+
     '<button class="'+(rig.power==='low'?'':'ghost')+'" id="pwLow">Low</button>'+
     '<button class="'+(rig.power==='normal'?'':'ghost')+'" id="pwNormal">Normal</button>'+
     '<button class="'+(rig.power==='high'?'':'ghost')+'" id="pwHigh">High</button>'+
     '</div>'+
-    '<div class="cardsLabel">Cards \u00B7 '+rig.count+' \u00B7 '+pct(share)+' of network</div>'+rows+
+    '<div class="cardsLabel">Cards \u00B7 '+rig.count+' \u00B7 '+(share*100).toFixed(4)+'% of global</div>'+rows+
     '<div class="navBtns">'+
     '<button class="power '+(mining?'on':'off')+'" id="rigPower">'+(mining||rig.state==='STARTUP'?'\u25A0 Stop':'\u25B6 Start')+'</button>'+
     '<button id="toConsole">&#9646; Console</button>'+
@@ -335,6 +347,12 @@ function openRigStats(rig){
     '<button class="ghost" id="toExplore">Explorer \u2192</button>'+
     '</div>';
   document.getElementById('closeRig').onclick=()=>backdrop.classList.remove('open');
+  document.getElementById('poolSel').onchange=(e)=>{
+    const v=e.target.value;
+    if(v==='solo'){ APP.settings.poolId=null; setPool(APP.chain, null); }
+    else { APP.settings.poolId=v; setPool(APP.chain, v); }
+    APP.settings.rewardMode=APP.chain.network.rewardMode; save(); openRigStats(rig);
+  };
   const setPw=(lvl)=>{ rig.power=lvl; setPlayerHashRate(APP.chain, networkHashFromRigs()); save(); openRigStats(rig); };
   document.getElementById('pwLow').onclick=()=>setPw('low');
   document.getElementById('pwNormal').onclick=()=>setPw('normal');
@@ -443,7 +461,7 @@ function bootSequence(rig){
     ['Authorized. Subscribed to mining.notify', 'c-ok', 280],
     ...Array.from({length:rig.count},(_,i)=>['Building DAG for GPU'+i+' \u2026 epoch 482', 'c-dim', 200]),
     ['DAG generation complete ('+rig.count+' GPUs) \u2014 '+(3*rig.count)+'.0 GB', 'c-ok', 320],
-    ['ETH: Mining started. target '+fmt(rigFullHash(rig))+' H/s ('+(rigGpu(rig).mhPerCard*rig.count).toFixed(1)+' Mh/s)', 'c-eth', 300],
+    ['ETH: Mining started. target '+(rigGpu(rig).mhPerCard*rig.count).toFixed(1)+' Mh/s ('+fmt(rigFullHash(rig))+' MH/s)', 'c-eth', 300],
   ];
   let i=0;
   (function next(){
@@ -490,7 +508,7 @@ function loopMining(rig){
   if(roll<0.30){
     const per=Array.from({length:rig.count},()=>mhPerCard(rig));
     const tot=per.reduce((a,b)=>a+b,0);
-    pushLine('ETH: Total Speed: '+tot.toFixed(3)+' Mh/s, Shares: '+rig.shares+', Rejected: 0 \u00B7 '+fmt(rigFullHash(rig))+' H/s', 'c-eth');
+    pushLine('ETH: Total Speed: '+tot.toFixed(3)+' Mh/s, Shares: '+rig.shares+', Rejected: 0 \u00B7 '+fmt(rigFullHash(rig))+' MH/s', 'c-eth');
     let line='ETH: '; per.forEach((m,i)=>{ line+='GPU'+i+' '+m.toFixed(3)+' Mh/s'+(i<rig.count-1?', ':''); });
     pushLine(line,'c-eth');
   } else if(roll<0.50){
@@ -512,43 +530,47 @@ function loopMining(rig){
 }
 function continueLoop(rig){
   const p=SRC.getPlayer();
-  crtStatus.innerHTML='MINING '+fmt(networkHashFromRigs())+' H/s \u00B7 '+rig.shares+' shares \u00B7 bal '+fmt1(p.selfBalance)+' BBT <span class="crtCursor"></span>';
+  crtStatus.innerHTML='MINING '+fmt(networkHashFromRigs())+' MH/s \u00B7 '+rig.shares+' shares \u00B7 bal '+fmt1(p.balance)+' BBT <span class="crtCursor"></span>';
   consoleTimer=setTimeout(()=>loopMining(rig), 350+Math.random()*500);
 }
 
 /* ---- dashboard ---- */
 function renderDash(){
-  const p=SRC.getPlayer(), net=SRC.getNetwork();
-  const share=p.stakeWeight/net.bondedWeight; const eq=equilibriumWeight(p.hashRate||1);
-  const towardEq=p.hashRate>0?Math.min(1,p.stakeWeight/eq):0;
-  const lastBlock=APP.chain.blocks[APP.chain.blocks.length-1];
-  const lastReward=lastBlock?(lastBlock.distribution[p.id]||0):0;
-  const perMin=lastReward*(60/net.blockTimeSec);
+  const p=SRC.getPlayer(), net=SRC.getNetwork(), st=SRC.getStats();
+  const share=net.globalHashRate>0 ? p.hashRate/net.globalHashRate : 0;
+  const reward=currentBlockReward(net);
+  const blocksPerDay=86400/net.blockTimeSec;
+  const bbtPerDay=blocksPerDay*reward*share; // EV/day
   const anyMining=RIGS.some(r=>r.state==='MINING');
-  const decaying=!anyMining;
+  const inPool=!!APP.settings.poolId;
+  const pool=inPool?poolById(APP.chain,APP.settings.poolId):null;
   let rigCards='';
   RIGS.forEach(r=>{ rigCards+='<div class="rigCard"><div class="info">'+
-    '<div class="nm">'+r.label+'</div><div class="sub">'+r.count+'\u00D7 '+rigGpu(r).name+' \u00B7 '+fmt(rigLiveHash(r))+' H/s live</div></div>'+
+    '<div class="nm">'+r.label+'</div><div class="sub">'+r.count+'\u00D7 '+rigGpu(r).name+' \u00B7 '+fmt(rigLiveHash(r))+' MH/s live</div></div>'+
     '<span class="st '+r.state+'">'+r.state+'</span></div>'; });
+  const statusTxt=!anyMining?'IDLE':(inPool?'POOL':'SOLO');
+  const statusCls=!anyMining?'warn':(inPool?'':'mid');
   document.getElementById('view-dash').innerHTML=`
     <div class="nodeHead">
-      <div><div class="moniker">${p.moniker}</div><div class="addr">${shortAddr(p.id)}</div></div>
-      <span class="status ${decaying?'warn':''}">${decaying?'IDLE \u00B7 DECAYING':'ACTIVE'}</span>
+      <div><div class="moniker">${p.moniker}</div><div class="addr">${inPool?pool.name+' \u00B7 '+pool.host+':'+pool.port:'solo \u00B7 no pool'}</div></div>
+      <span class="status ${statusCls}">${statusTxt}</span>
     </div>
-    <div class="decayWarn ${decaying?'show':''}">\u26A0 No rigs mining \u2014 stake-weight is decaying. Start a rig to hold voting power.</div>
+    ${!anyMining?'<div class="decayWarn show">\u26A0 No rigs mining \u2014 you earn nothing while offline. Start a rig.</div>':''}
     <div class="grid2">
-      <div class="stat"><div class="l">Voting Power</div><div class="v" style="color:var(--phosphor)">${fmt(p.stakeWeight)}</div>
-        <div class="s">${pct(share)} of network</div><div class="powerBar"><div class="powerFill" style="width:${(share*100).toFixed(1)}%"></div></div></div>
-      <div class="stat"><div class="l">Network Hash (yours)</div><div class="v">${fmt(p.hashRate)} <span style="font-size:13px;color:var(--textDim)">H/s</span></div>
-        <div class="s">equilibrium ${fmt(eq)} (${pct(towardEq)})</div><div class="powerBar"><div class="powerFill" style="width:${(towardEq*100).toFixed(0)}%;background:var(--amber)"></div></div></div>
-      <div class="stat"><div class="l">Balance</div><div class="v" style="color:var(--coin)">${fmt1(p.selfBalance)}</div><div class="s">BBT earned</div></div>
-      <div class="stat"><div class="l">Rewards / min</div><div class="v" style="color:var(--phosphor)">+${fmt1(perMin)}</div>
-        <div class="s">commission ${pct(p.commissionRate)} \u00B7 last blk +${fmt1(lastReward)}</div></div>
+      <div class="stat"><div class="l">Your Hashrate</div><div class="v" style="color:var(--phosphor)">${fmt(p.hashRate)} <span style="font-size:13px;color:var(--textDim)">MH/s</span></div>
+        <div class="s">${(share*100).toFixed(4)}% of ${fmt(net.globalHashRate/1000)} GH/s global</div></div>
+      <div class="stat"><div class="l">Balance</div><div class="v" style="color:var(--coin)">${fmt1(p.balance)}</div><div class="s">BBT earned</div></div>
+      <div class="stat"><div class="l">Blocks Won</div><div class="v">${fmt(p.blocksWon)}</div><div class="s">${inPool?'(via pool share)':'solo blocks'}</div></div>
+      <div class="stat"><div class="l">Est. Earnings/day</div><div class="v" style="color:var(--phosphor)">${fmt1(bbtPerDay)}</div>
+        <div class="s">${inPool?'pending pool: '+fmt1(p.pendingPool)+' BBT':'EV \u00B7 high variance'}</div></div>
     </div>
     <div class="section">Rigs \u00B7 ${RIGS.length}</div>
     <div class="rigList">${rigCards}</div>
-    <div class="spark"><div class="l">Voting-power share \u00B7 last ${shareHistory.length} blocks</div><canvas id="shareSpark" height="60"></canvas></div>
-    <div class="note">Total live hashrate ${fmt(networkHashFromRigs())} H/s feeds your validator; weight accrues with decay and rewards come from real block distribution. Token: <b>BBT</b>.</div>`;
+    <div class="spark"><div class="l">Global hash-share \u00B7 recent</div><canvas id="shareSpark" height="60"></canvas></div>
+    <div class="note">${inPool
+      ? 'Mining in <b>'+pool.name+'</b> ('+(pool.fee*100).toFixed(1)+'% fee) \u2014 steady share of the pool\u2019s wins, paid ~every 15 min.'
+      : 'Mining <b>solo</b> \u2014 you win whole blocks by luck at '+(share*100).toFixed(4)+'% odds. Brutal variance, no fees.'}
+      Total live hashrate ${fmt(networkHashFromRigs())} MH/s. Token: <b>BBT</b>.</div>`;
   drawSpark();
 }
 function drawSpark(){
@@ -562,33 +584,42 @@ function drawSpark(){
 
 /* ---- explorer ---- */
 function renderExplore(){
-  const net=SRC.getNetwork(); const vals=SRC.getValidators(); const blocks=SRC.getLatestBlocks(12);
+  const net=SRC.getNetwork(); const ents=SRC.getEntities(); const blocks=SRC.getLatestBlocks(14);
+  const total=ents.reduce((s,e)=>s+e.hashRate,0);
   let vrows='';
-  vals.forEach((v,i)=>{ const share=v.stakeWeight/net.bondedWeight;
-    vrows+=`<tr class="${v.isPlayer?'me':''}"><td>${i+1}</td>
-      <td><span class="vmoniker">${v.moniker}</span>${v.isPlayer?'<span class="npill">YOU</span>':''}</td>
-      <td>${fmt(v.stakeWeight)}</td><td class="vshare">${pct(share)}</td><td>${pct(v.commissionRate)}</td><td>${fmt(v.hashRate)}</td></tr>`; });
+  ents.forEach((e,i)=>{ const share=e.hashRate/total;
+    const isMe = e.kind==='player' || (e.kind==='pool' && APP.settings.poolId===e.id);
+    const label = e.kind==='pool'?e.name : e.kind==='player'?e.name : 'Independent miners';
+    const tag = e.kind==='player'?'<span class="npill">YOU \u00B7 SOLO</span>'
+              : (e.kind==='pool'&&APP.settings.poolId===e.id)?'<span class="npill">YOUR POOL</span>':'';
+    vrows+=`<tr class="${isMe?'me':''}"><td>${i+1}</td>
+      <td><span class="vmoniker">${label}</span>${tag}</td>
+      <td class="vshare">${pct(share)}</td>
+      <td>${e.kind==='pool'?(e.fee*100).toFixed(1)+'%':'\u2014'}</td>
+      <td>${fmt(e.hashRate/1000)} GH/s</td></tr>`; });
   let brows='';
-  blocks.forEach(b=>{ brows+=`<div class="blockRow" data-h="${b.height}"><div class="bh">#${b.height}</div>
-    <div class="binfo"><div class="top">${b.playerWon?'\uD83C\uDFC6 ':''}won by ${b.winnerMoniker}${b.mode==='pool'?' (pool)':''}</div>
+  blocks.forEach(b=>{ const mine=b.playerWon||(b.mode==='pool'&&b.poolId===APP.settings.poolId&&b.winnerId===b.poolId);
+    brows+=`<div class="blockRow" data-h="${b.height}"><div class="bh">#${fmt(b.height)}</div>
+    <div class="binfo"><div class="top">${b.playerWon?'\uD83C\uDFC6 ':''}${b.winnerName}${mine&&!b.playerWon?' \u2190 your pool':''}</div>
     <div class="sub">${b.hash} \u00B7 ${b.txCount} txs \u00B7 ${ago(b.time)}</div></div>
     <div class="breward">+${fmt1(b.reward)}</div></div>`; });
   document.getElementById('view-explore').innerHTML=`
     <div class="section">Network \u00B7 ${net.chainId} \u00B7 height ${fmt(net.height)}</div>
-    <div class="section">Validator set \u00B7 ${vals.length} nodes \u00B7 bonded ${fmt(net.bondedWeight)}</div>
-    <table><thead><tr><th>#</th><th>Validator</th><th>Voting Power</th><th>Share</th><th>Comm</th><th>H/s</th></tr></thead><tbody>${vrows}</tbody></table>
+    <div class="section">Pools &amp; miners \u00B7 ${fmt(net.globalHashRate/1000)} GH/s global</div>
+    <table><thead><tr><th>#</th><th>Pool / Miner</th><th>Share</th><th>Fee</th><th>Hashrate</th></tr></thead><tbody>${vrows}</tbody></table>
     <div class="section">Latest blocks</div>${brows}
-    <div class="note">Each block has one winner (solo) or pays the pool by hash-share. Win chance \u221d your hashrate vs. the network. Tap a block for its distribution. Rewards denominated in <b>BBT</b>.</div>`;
+    <div class="note">Each block has exactly one winner, chosen by hash-weighted lottery. Pools hold ${(net.globalHashRate? (1-net.soloFieldHash/net.globalHashRate)*100:0).toFixed(0)}% of global; the solo field (incl. you) is the rest. Rewards in <b>BBT</b>.</div>`;
   document.querySelectorAll('.blockRow').forEach(r=>r.onclick=()=>openBlock(+r.dataset.h));
 }
 function openBlock(height){
   const b=APP.chain.blocks.find(x=>x.height===height); if(!b) return;
-  const vals=SRC.getValidators(); let rows='';
-  vals.forEach(v=>{ const amt=b.distribution[v.id]||0;
-    rows+=`<div class="distRow"><span>${v.moniker}${v.id===b.winner?' \u00B7 winner':''}${v.isPlayer?' (you)':''}</span><span style="color:var(--coin)">+${fmt1(amt)} BBT</span></div>`; });
-  sheet.innerHTML=`<div class="sheetHead"><h2>Block #${b.height}</h2><button class="closeX" id="cx">\u00D7</button></div>
-    <div class="sub" style="word-break:break-all;color:var(--textFaint);font-size:11px;margin-bottom:12px">${b.hash}<br>won by ${b.winnerMoniker} \u00B7 ${b.mode} \u00B7 ${b.txCount} txs \u00B7 reward ${fmt1(b.reward)} BBT</div>
-    <div class="section">Reward distribution</div>${rows}`;
+  sheet.innerHTML=`<div class="sheetHead"><h2>Block #${fmt(b.height)}</h2><button class="closeX" id="cx">\u00D7</button></div>
+    <div class="sub" style="word-break:break-all;color:var(--textFaint);font-size:11px;margin-bottom:12px">${b.hash}<br>won by ${b.winnerName} \u00B7 ${b.winnerKind} \u00B7 ${b.txCount} txs \u00B7 reward ${fmt1(b.reward)} BBT</div>
+    <div class="section">Outcome</div>
+    <div class="distRow"><span>Winner</span><span style="color:var(--coin)">${b.winnerName}</span></div>
+    <div class="distRow"><span>Block reward</span><span style="color:var(--coin)">+${fmt1(b.reward)} BBT</span></div>
+    ${b.playerWon?'<div class="distRow"><span>\uD83C\uDFC6 You won this block</span><span style="color:var(--phosphor)">+'+fmt1(b.playerDelta)+' BBT</span></div>':''}
+    ${(b.mode==='pool'&&b.poolId===APP.settings.poolId&&b.winnerId===b.poolId&&!b.playerWon)?'<div class="distRow"><span>Your pool won \u2014 your share accrues to pending</span><span style="color:var(--phosphor)">\u2713</span></div>':''}`;
   document.getElementById('cx').onclick=()=>backdrop.classList.remove('open');
   backdrop.classList.add('open');
 }
@@ -596,12 +627,14 @@ function openBlock(height){
 /* ---- stats / mining calculator ---- */
 function renderStats(){
   const net=SRC.getNetwork(); const p=SRC.getPlayer(); const st=SRC.getStats();
-  const myHash=p.hashRate; const netHash=net.networkHashRate;
-  const share=netHash>0?myHash/netHash:0;
+  const myHash=p.hashRate; const globalHash=net.globalHashRate;
+  const share=globalHash>0?myHash/globalHash:0;
   const reward=currentBlockReward(net);
   const blocksPerDay=86400/net.blockTimeSec;
-  // expected BBT/day from share (solo expectation == pool payout, same mean)
-  const bbtPerDay=blocksPerDay*reward*share;
+  const inPool=!!APP.settings.poolId;
+  const pool=inPool?poolById(APP.chain,APP.settings.poolId):null;
+  const feeMult=inPool?(1-pool.fee):1;
+  const bbtPerDay=blocksPerDay*reward*share*feeMult; // fee-adjusted EV
   const price=APP.econ.bbtUsd;
   const watts=totalDrawW();
   const costDay=powerCost(watts,24,APP.settings.costPerKwh);
@@ -618,11 +651,11 @@ function renderStats(){
     <header style="padding:6px 0 0"><h2 style="font-size:30px;font-weight:800">Mining Calculator</h2></header>
     <div class="grid2">
       <div class="stat"><div class="l">BBT Price</div><div class="v" style="color:var(--coin)">$${price.toFixed(2)}</div><div class="s">drifting (sim)</div></div>
-      <div class="stat"><div class="l">Your Luck</div><div class="v" style="color:${luck>=1?'var(--phosphor)':'var(--amber)'}">${(luck*100).toFixed(0)}%</div><div class="s">${st.playerBlocksWon} won / ${st.playerExpectedBlocks.toFixed(1)} expected</div></div>
-      <div class="stat"><div class="l">Network Share</div><div class="v" style="color:var(--phosphor)">${pct(share)}</div><div class="s">${fmt(myHash)} of ${fmt(netHash)} H/s</div></div>
-      <div class="stat"><div class="l">Efficiency</div><div class="v">${eff.toFixed(1)}<span style="font-size:12px;color:var(--textDim)"> H/W</span></div><div class="s">${fmt(watts)} W draw</div></div>
+      <div class="stat"><div class="l">Your Luck</div><div class="v" style="color:${luck>=1?'var(--phosphor)':'var(--amber)'}">${(luck*100).toFixed(0)}%</div><div class="s">${fmt(st.playerBlocksWon)} won / ${fmt1(st.playerExpectedBlocks)} expected</div></div>
+      <div class="stat"><div class="l">Global Share</div><div class="v" style="color:var(--phosphor)">${(share*100).toFixed(4)}%</div><div class="s">${fmt(myHash)} MH/s of ${fmt(globalHash/1000)} GH/s</div></div>
+      <div class="stat"><div class="l">Efficiency</div><div class="v">${eff.toFixed(2)}<span style="font-size:12px;color:var(--textDim)"> MH/W</span></div><div class="s">${fmt(watts)} W draw</div></div>
     </div>
-    <div class="section">Projected earnings &amp; cost &middot; ${APP.settings.rewardMode.toUpperCase()}</div>
+    <div class="section">Projected earnings &amp; cost &middot; ${inPool?pool.name.toUpperCase()+' ('+(pool.fee*100).toFixed(1)+'% FEE)':'SOLO'}</div>
     <table>
       <thead><tr><th></th><th>Day</th><th>Week</th><th>Month</th></tr></thead>
       <tbody>
@@ -632,6 +665,9 @@ function renderStats(){
         ${row('<b style="color:var(--text)">Net profit</b>', '<b style="color:'+(profitDay>=0?'var(--phosphor)':'var(--ember)')+'">'+money(profitDay)+'</b>', money(profitDay*7), money(profitDay*30))}
       </tbody>
     </table>
+    <div class="note" style="margin-top:6px">${inPool
+      ? 'Pool earnings are steady (paid ~every 15 min) and net of the '+(pool.fee*100).toFixed(1)+'% fee.'
+      : 'Solo numbers are <b>expected value</b> \u2014 actual income is lumpy; you might win nothing for hours, then a whole block.'}</div>
     <div class="section">Heat &amp; environment</div>
     <div class="grid2">
       <div class="stat"><div class="l">Total Heat</div><div class="v" style="color:var(--amber)">${fmt(totalBtu())}<span style="font-size:12px;color:var(--textDim)"> BTU/hr</span></div><div class="s">${fmt(watts)} W \u2192 heat</div></div>
@@ -641,31 +677,29 @@ function renderStats(){
     <div class="stat"><div class="l">Accrued This Cycle</div>
       <div class="v" style="color:var(--ember)">${money(APP.econ.kwhUsed*APP.settings.costPerKwh)}</div>
       <div class="s">${APP.econ.kwhUsed.toFixed(1)} kWh @ $${APP.settings.costPerKwh}/kWh \u00B7 due after 30 days</div></div>
-    <div class="note">Earnings use your hash-share \u00D7 block reward (mean of the solo lottery). Luck shows
-      actual vs. statistically expected block wins \u2014 short-run variance is real. Token: <b>BBT</b>.</div>`;
+    <div class="note">Anchored to late-2015 Ethereum scale: a 6-card rig is ~0.044% of a ~381 GH/s network.
+      Luck = actual vs. expected block wins. Token: <b>BBT</b>.</div>`;
 }
 
 /* ---- settings ---- */
 function renderSettings(){
   const s=APP.settings;
+  const inPool=!!s.poolId; const pool=inPool?poolById(APP.chain,s.poolId):null;
   document.getElementById('view-settings').innerHTML=`
     <header style="padding:6px 0 0"><h2 style="font-size:30px;font-weight:800">Settings</h2></header>
-    <div class="section">Mining mode</div>
-    <div class="navBtns" style="margin-top:0">
-      <button class="${s.rewardMode==='solo'?'':'ghost'}" id="modeSolo">Solo \u00B7 winner-take-all</button>
-      <button class="${s.rewardMode==='pool'?'':'ghost'}" id="modePool">Pool \u00B7 steady</button>
-    </div>
-    <div class="note" style="margin-top:8px;border:none;padding-top:4px">Solo: you win whole blocks by luck weighted to your hashrate \u2014 swingy. Pool: steady payouts proportional to your share.</div>
+    <div class="section">Current mining target</div>
+    <div class="stat"><div class="l">${inPool?'Pool':'Solo'}</div>
+      <div class="v" style="color:var(--phosphor);font-size:18px">${inPool?pool.name:'Solo mining'}</div>
+      <div class="s">${inPool?pool.host+':'+pool.port+' \u00B7 '+(pool.fee*100).toFixed(1)+'% fee':'winner-take-all \u00B7 no fees \u00B7 high variance'}</div></div>
+    <div class="note" style="margin-top:8px;border:none;padding-top:4px">Change your pool or switch to solo from any rig\u2019s settings (tap the rig \u2192 Mining target).</div>
     <div class="section">Electricity cost</div>
     <div class="stat"><div class="l">Cost per kWh</div>
       <div class="v" style="color:var(--coin)">$<span id="kwhVal">${s.costPerKwh.toFixed(2)}</span></div>
       <input type="range" id="kwhRange" min="0.02" max="0.40" step="0.01" value="${s.costPerKwh}" style="width:100%;margin-top:10px;accent-color:var(--phosphor)">
       <div class="s">drag to set your power rate</div></div>
     <div class="section">Reset</div>
-    <button class="navBtns" style="display:block;width:100%"><span class="ghost" id="resetBtn" style="display:block;background:var(--panelHi);color:var(--ember);border:1px solid var(--ember);border-radius:10px;padding:13px;text-align:center;cursor:pointer">Reset all progress</span></button>
+    <div id="resetBtn" style="background:var(--panelHi);color:var(--ember);border:1px solid var(--ember);border-radius:10px;padding:13px;text-align:center;cursor:pointer">Reset all progress</div>
     <div class="note">Room baseline fixed at 72\u00B0F / 25% RH. Weather-by-zip via API is on the backlog.</div>`;
-  document.getElementById('modeSolo').onclick=()=>{ s.rewardMode='solo'; setRewardMode(APP.chain,'solo'); save(); renderSettings(); };
-  document.getElementById('modePool').onclick=()=>{ s.rewardMode='pool'; setRewardMode(APP.chain,'pool'); save(); renderSettings(); };
   const range=document.getElementById('kwhRange');
   range.oninput=()=>{ s.costPerKwh=parseFloat(range.value); document.getElementById('kwhVal').textContent=s.costPerKwh.toFixed(2); save(); };
   document.getElementById('resetBtn').onclick=()=>{ if(confirm('Reset all progress? This wipes your save.')){ localStorage.removeItem(KEY); location.reload(); } };
@@ -685,8 +719,9 @@ if(location.hash==='#explore') go('explore');
 else if(location.hash==='#dash') go('dash');
 function render(){
   const net=SRC.getNetwork(); const p=SRC.getPlayer();
-  document.getElementById('hudCoin').textContent='\u26C3 '+fmt(p.selfBalance)+' BBT';
-  document.getElementById('hudRate').textContent=fmt(networkHashFromRigs())+' H/s \u00B7 '+pct(p.stakeWeight/net.bondedWeight)+' net';
+  document.getElementById('hudCoin').textContent='\u26C3 '+fmt(p.balance)+' BBT';
+  const gShare=net.globalHashRate>0?p.hashRate/net.globalHashRate:0;
+  document.getElementById('hudRate').textContent=fmt(networkHashFromRigs())+' MH/s \u00B7 '+(gShare*100).toFixed(4)+'% net';
   if(activeTab==='dash') renderDash();
   else if(activeTab==='explore') renderExplore();
   else if(activeTab==='stats') renderStats();

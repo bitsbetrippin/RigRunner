@@ -3,6 +3,50 @@
 All notable changes to Rig Runner / *Miner's Life* are tracked here.
 Format loosely follows Keep a Changelog. Dates are YYYY-MM-DD.
 
+## [0.3] — 2026-06-22
+
+Scales the network to real-world early-Ethereum economics and adds an 8-pool
+mining ecosystem with a solo-vs-pool risk/reward choice.
+
+### Added
+- **Real-world network scale** (anchored to late-2015 Ethereum): ETH ~$3.15,
+  5 ETH/block, 10s blocks, a 6-card ~168 MH/s rig earning ~$1,800/mo ⇒ the player
+  is **~0.044% of a ~381 GH/s global network** (verified against historical
+  early-Frontier hashrate). Solo mining is a genuine long-shot.
+- **8 mining pools** with realistic names, stratum hosts/ports, and fees:
+  Dwarfpool, Ethermine, F2Pool, Nanopool, ethpool, MiningPoolHub, Coinotron,
+  Suprnova. Pools hold ~85% of global hashrate (largest ~20.5%, smallest ~6% of
+  global); the remaining ~15% is the solo/independent field that includes the
+  player.
+- **Pool selector** on each rig's settings (dropdown: Solo + the 8 pools, showing
+  fee and network share).
+- **Solo vs. pool risk/reward**: solo is winner-take-all (brutal variance, no
+  fees); pools pay a steady share of the pool's wins every ~15 minutes, minus the
+  pool fee. **Smaller pools charge lower fees**, so they genuinely net more per
+  unit hash — but win less often, so payouts are lumpier. Expected value before
+  fees is identical everywhere; fees + variance are the real differentiators.
+- **~15-minute pool payout windows** (slows reward flow, as intended for the
+  future shop/upgrade economy).
+
+### Changed
+- Hashrate is now measured in **MH/s** throughout (a card ~28 MH/s, a 6-card rig
+  ~168 MH/s) to match real scale.
+- **Network model replaced**: the old 5-validator PoS-style set is gone. The
+  network is now 8 pools + a solo field, and each block has exactly one winning
+  entity chosen by hash-weighted deterministic lottery (entropy preserved via the
+  seeded per-height RNG, so the chain stays uniform across all players).
+- Explorer, dashboard, stats, and HUD reworked to show global hash-share, pool
+  membership, fees, and pending pool payouts.
+- Settings page now reflects the current mining target (mode selection moved to
+  the rig's pool dropdown).
+- Save key bumped to `v0_3` (fresh state; earlier saves not migrated).
+
+### Deferred / TODO
+- Shop / GPU purchasing / rig upgrades (this build's slowed economy is designed
+  to make that spend/store loop meaningful).
+- Per-GPU sound, weather-by-zip API, GPU data table, multiple rigs, player
+  movement, real leaderboards, save slots, server-synced chain, delegation/slashing.
+
 ## [0.2.1] — 2026-06-22
 
 Fixes block cadence and makes the chain uniform across all players.
