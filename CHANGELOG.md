@@ -3,6 +3,39 @@
 All notable changes to Rig Runner / *Miner's Life* are tracked here.
 Format loosely follows Keep a Changelog. Dates are YYYY-MM-DD.
 
+## [0.4] — 2026-06-22
+
+Adds save slots, multiple locations, and a location shop.
+
+### Added
+- **6 save slots** ("miners") on a landing page after START. Each slot is an
+  independent human — its own BBT balance, owned locations, rigs, and pool choice
+  — but **all slots share one world** (the same deterministic chain, pools, block
+  timeline, and BBT price).
+- **Locations as buyable sites**, each holding independent rigs (one per rig frame
+  in the art):
+  - **Dorm Room** — free, auto-owned (1 rig)
+  - **Home Garage** — 100 BBT (4 rigs)
+  - **Mining Shack** — 200 BBT (10 rigs)
+- **Location Shop** tab: spend the slot's BBT to buy locations. Buying adds that
+  location's rigs (same base config as the dorm: 6× RX 6800, normal power).
+- **Room view is location-aware**: switch between owned locations with tabs; every
+  rig frame is an independent tappable hotspot.
+- All owned locations **mine simultaneously** — every active rig sums into the
+  slot's total hashrate. Point them at one pool for a pooled view of all your rigs.
+
+### Changed
+- **Storage split**: a shared `world` record (chain + price) plus per-slot records
+  (balance, locations, rigs, pool, power). Each slot feeds its own hashrate into
+  the shared chain while active.
+- Bottom nav adds **SHOP**; "MY NODE" shortened to "NODE".
+
+### Notes
+- A full farm (dorm + garage + shack = 15 rigs) is ~0.66% of the global network,
+  up from the dorm's 0.044% — a real incentive to expand.
+- Future: link multiple slots to one wallet; more shop locations; per-location
+  rig config tuning.
+
 ## [0.3.1] — 2026-06-22
 
 ### Fixed

@@ -132,11 +132,34 @@
   .crtCursor{display:inline-block;width:8px;height:14px;background:#39ff8b;animation:blink 1s steps(1) infinite;vertical-align:middle}
   @keyframes blink{50%{opacity:0}}
   .emptyScreen{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:2;color:#1c3a24;font-size:13px;letter-spacing:2px}
+
+  /* slot select */
+  .slotCard{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--grid);border-radius:12px;padding:16px;margin-bottom:10px}
+  .slotCard.empty{border-style:dashed}
+  .slotInfo{flex:1;min-width:0}
+  .slotName{font-size:17px;font-weight:700}
+  .slotMeta{color:var(--textDim);font-size:12px;margin-top:3px}
+  .slotActions{display:flex;gap:8px;align-items:center}
+  .slotPlay,.slotNew{background:var(--phosphorDim);color:var(--void);border-radius:9px;padding:11px 18px;font-weight:800;letter-spacing:1px;font-size:13px;cursor:pointer}
+  .slotNew{background:var(--panelHi);color:var(--phosphor);border:1px solid var(--phosphorDim)}
+  .slotDel{background:none;color:var(--textFaint);font-size:20px;cursor:pointer;padding:0 6px}
+  .slotDel:hover{color:var(--ember)}
+
+  /* shop */
+  .shopList{margin-top:10px}
+  .shopCard{display:flex;align-items:center;gap:12px;background:var(--panel);border:1px solid var(--grid);border-radius:12px;padding:12px;margin-bottom:10px}
+  .shopThumb{width:84px;height:64px;flex:none;border-radius:8px;background-size:cover;background-position:center;border:1px solid var(--grid)}
+  .shopInfo{flex:1;min-width:0}
+  .shopName{font-size:15px;font-weight:700}
+  .shopBlurb{color:var(--textDim);font-size:11px;margin-top:2px;line-height:1.4}
+  .shopMeta{color:var(--textFaint);font-size:10px;letter-spacing:1px;margin-top:4px;text-transform:uppercase}
+  .shopAction{flex:none}
+  .buyBtn{background:var(--phosphorDim);color:var(--void);border-radius:9px;padding:11px 14px;font-weight:800;letter-spacing:1px;font-size:12px;cursor:pointer}
 </style>
 </head>
 <body>
 <header>
-  <div class="brand">RIG RUNNER &middot; DORM 1 <span class="ver">v0.3.1</span></div>
+  <div class="brand">RIG RUNNER &middot; DORM 1 <span class="ver">v0.4</span></div>
   <div class="hud">
     <span class="coin" id="hudCoin">&#9923; 0 BBT</span>
     <span class="rate" id="hudRate">0 H/s</span>
@@ -145,17 +168,26 @@
 
 <div class="view active" id="view-room">
   <div id="roomWrap">
-    <img id="roomImg" src="assets/room.png" alt="Dorm room" />
-    <div id="rigHot" title="Mining rig"></div>
-    <div id="rigTag">RIG 01 &middot; tap for stats</div>
-    <div class="imgErr" id="imgErr">Couldn&rsquo;t load <b>room.png</b>. Keep all files together (see README).</div>
+    <img id="roomImg" alt="Location" />
+    <div class="imgErr" id="imgErr">Couldn&rsquo;t load location art. Keep all files together (see README).</div>
   </div>
-  <div class="roomHint">Tap the <b>mining rig</b> to view stats, your node, and the network.</div>
+  <div class="roomHint">Tap a <b>mining rig</b> for stats. Buy more locations from <b>Shop</b>.</div>
 </div>
 <div class="view" id="view-dash"></div>
 <div class="view" id="view-explore"></div>
 <div class="view" id="view-stats"></div>
+<div class="view" id="view-shop"></div>
 <div class="view" id="view-settings"></div>
+
+<!-- slot-select landing (shown first, full screen) -->
+<div id="slotScreen" style="position:fixed;inset:0;z-index:300;background:var(--void);overflow:auto;display:none">
+  <div style="max-width:760px;margin:0 auto;padding:28px 16px">
+    <div class="brand" style="margin-bottom:4px">RIG RUNNER</div>
+    <h1 style="font-size:30px;font-weight:800;margin-bottom:6px">Choose your miner</h1>
+    <p style="color:var(--textDim);font-size:13px;margin-bottom:20px">Each slot is an independent miner in the same shared world. Build separate GPU farms and grow each wallet.</p>
+    <div id="slotList"></div>
+  </div>
+</div>
 
 <div class="backdrop" id="backdrop"><div class="sheet" id="sheet"></div></div>
 
@@ -177,14 +209,16 @@
 
 <div class="tabs">
   <button class="active" data-tab="room"><span class="ic">&#127968;</span>ROOM</button>
-  <button data-tab="dash"><span class="ic">&#128225;</span>MY NODE</button>
+  <button data-tab="dash"><span class="ic">&#128225;</span>NODE</button>
   <button data-tab="explore"><span class="ic">&#129513;</span>EXPLORER</button>
   <button data-tab="stats"><span class="ic">&#128202;</span>STATS</button>
+  <button data-tab="shop"><span class="ic">&#127970;</span>SHOP</button>
   <button data-tab="settings"><span class="ic">&#9881;</span>SETTINGS</button>
 </div>
 
 <script src="engine/chain.js"></script>
 <script src="engine/power.js"></script>
+<script src="engine/locations.js"></script>
 <script>
 /* =========================================================================
    Rig Runner v0.1 — integrated build
@@ -194,93 +228,155 @@
    ========================================================================= */
 
 /* ---- GPU + rig definitions ---- */
-/* GPU hashrate in MH/s (real-world scale: ~28 MH/s per RX 6800-class card in 2015-16).
-   A 6-card rig ~168 MH/s = ~0.044% of the 381 GH/s global network. */
 const GPU_CATALOG={ rx6800:{ name:'AMD RX 6800', mhPerCard:28, watts:230 } };
 
-/* Rig factory: each rig is independent. Add more rigs to RIGS[] later. */
-function makeRig(id,label,gpu,count){
-  return { id,label,gpu,count,
-    state:'OFFLINE',          // OFFLINE | STARTUP | MINING | STOPPING
-    power:'normal',           // low | normal | high  (sets watts + hash)
-    shares:0, jobId:1 };
-}
-const RIGS=[ makeRig('rig1','Rig 01 \u00B7 Desk','rx6800',6) ];
+/* RIGS is now the active slot's rigs across all owned locations (built on load). */
+let RIGS=[];
 
 function rigGpu(r){ return GPU_CATALOG[r.gpu]; }
-function rigFullHash(r){ return rigPowerHash(r, rigGpu(r).mhPerCard); } // power-scaled MH/s
-function rigLiveHash(r){ return r.state==='MINING' ? rigFullHash(r) : 0; } // contributes only while mining
+function rigFullHash(r){ return rigPowerHash(r, rigGpu(r).mhPerCard); }
+function rigLiveHash(r){ return r.state==='MINING' ? rigFullHash(r) : 0; }
 function networkHashFromRigs(){ return RIGS.reduce((s,r)=>s+rigLiveHash(r),0); }
-function rigDrawW(r){ return r.state==='OFFLINE' ? 0 : rigWatts(r); }       // watts when on
+function rigDrawW(r){ return r.state==='OFFLINE' ? 0 : rigWatts(r); }
 function totalDrawW(){ return RIGS.reduce((s,r)=>s+rigDrawW(r),0); }
 function totalBtu(){ return wattsToBtu(totalDrawW()); }
+function rigsInLocation(locId){ return RIGS.filter(r=>r.locId===locId); }
 
-/* Current mining target for the console: the selected pool, or a solo endpoint.
-   Returns { name, host, port, label } so the console can show real names/ports. */
 function miningTarget(){
-  if(APP.settings.poolId){
-    const p=poolById(APP.chain, APP.settings.poolId);
+  if(SLOT.poolId){
+    const p=poolById(WORLD.chain, SLOT.poolId);
     if(p) return { name:p.name, host:p.host, port:p.port, label:p.host+':'+p.port, solo:false };
   }
   return { name:'Solo', host:'solo.dorm-rig.local', port:8545, label:'solo.dorm-rig.local:8545 (solo)', solo:true };
 }
 
-/* ---- persistence: rig states + chain + settings/economy ---- */
-const KEY='rigrunner:integrated:v0_3_1';
-let APP;
-(function init(){
-  let loaded=null;
-  try{ const raw=localStorage.getItem(KEY); if(raw) loaded=JSON.parse(raw); }catch(e){}
-  if(loaded && loaded.chain && loaded.chain.network && loaded.rigs){
-    APP=loaded;
-    RIGS.forEach(r=>{ const sv=APP.rigs.find(x=>x.id===r.id); if(sv){ r.state=sv.state; r.power=sv.power||'normal'; r.shares=sv.shares||0; r.jobId=sv.jobId||1; } });
-    setPlayerHashRate(APP.chain, networkHashFromRigs());
-    // restore pool/solo selection
-    if(APP.settings){ if(APP.settings.poolId) setPool(APP.chain, APP.settings.poolId); else setRewardMode(APP.chain,'solo'); }
-    const lastSync=APP.econ.lastSyncMs||Date.now();
-    const elapsedSec=Math.min((Date.now()-lastSync)/1000, 86400);
-    if(elapsedSec>0) APP.econ.kwhUsed += kwh(totalDrawW(), elapsedSec/3600);
-    syncToTime(APP.chain, Date.now());
-    APP.econ.lastSyncMs=Date.now();
-  } else {
-    RIGS[0].state='MINING';
-    const chain=createNetwork(networkHashFromRigs());
-    setRewardMode(chain,'solo');
-    syncToTime(chain, Date.now());
-    APP={ chain,
-      settings:{ costPerKwh:ECON_DEFAULTS.costPerKwh, rewardMode:'solo', poolId:null },
-      econ:{ bbtUsd:ECON_DEFAULTS.bbtUsd, kwhUsed:0, billStartAt:Date.now(), lastSyncMs:Date.now() } };
-  }
-  // defensive defaults
-  if(!APP.settings) APP.settings={ costPerKwh:ECON_DEFAULTS.costPerKwh, rewardMode:'solo', poolId:null };
-  if(APP.settings.poolId===undefined) APP.settings.poolId=null;
-  if(!APP.econ) APP.econ={ bbtUsd:ECON_DEFAULTS.bbtUsd, kwhUsed:0, billStartAt:Date.now(), lastSyncMs:Date.now() };
-  if(APP.econ.lastSyncMs===undefined) APP.econ.lastSyncMs=Date.now();
-  syncRigsToApp(); save();
-})();
-function syncRigsToApp(){ APP.rigs=RIGS.map(r=>({id:r.id,state:r.state,power:r.power,shares:r.shares,jobId:r.jobId})); }
-function save(){ syncRigsToApp(); try{ localStorage.setItem(KEY, JSON.stringify(APP)); }catch(e){} }
-const SRC=makeMockSource(()=>APP.chain);
+/* ============================================================
+   STORAGE MODEL (v0.4)
+   - WORLD  (rigrunner:world:v1): the shared deterministic chain + economy.
+     All slots share this single timeline/genesis.
+   - SLOT N (rigrunner:slot:N:v1): one "human" — balance, owned locations,
+     per-rig states/power, pool choice, power settings.
+   ============================================================ */
+const WORLD_KEY='rigrunner:world:v1';
+const slotKey=n=>'rigrunner:slot:'+n+':v1';
+const NUM_SLOTS=6;
+let WORLD=null;   // { chain, econ:{bbtUsd, lastSyncMs} }
+let SLOT=null;    // active slot record
+let activeSlotN=null;
 
-/* ---- live tick: render-rate-independent; chain advances by WALL-CLOCK TIME ---- */
+/* ---- world: shared chain + price ---- */
+function loadWorld(){
+  let w=null; try{ const raw=localStorage.getItem(WORLD_KEY); if(raw) w=JSON.parse(raw); }catch(e){}
+  if(w && w.chain && w.chain.network){
+    WORLD=w;
+  } else {
+    const chain=createNetwork(0); setRewardMode(chain,'solo'); syncToTime(chain, Date.now());
+    WORLD={ chain, econ:{ bbtUsd:ECON_DEFAULTS.bbtUsd, lastSyncMs:Date.now() } };
+  }
+  if(!WORLD.econ) WORLD.econ={ bbtUsd:ECON_DEFAULTS.bbtUsd, lastSyncMs:Date.now() };
+  saveWorld();
+}
+function saveWorld(){ try{ localStorage.setItem(WORLD_KEY, JSON.stringify(WORLD)); }catch(e){} }
+
+/* ---- slots: list/create/load ---- */
+function readSlot(n){ try{ const raw=localStorage.getItem(slotKey(n)); if(raw) return JSON.parse(raw); }catch(e){} return null; }
+function slotSummaries(){
+  const out=[];
+  for(let n=0;n<NUM_SLOTS;n++){
+    const s=readSlot(n);
+    out.push(s ? { n, exists:true, name:s.name, balance:s.balance, locations:s.locations,
+                   rigCount:(s.rigs||[]).length, created:s.created }
+               : { n, exists:false });
+  }
+  return out;
+}
+function newSlot(n, name){
+  // brand-new human: owns the free dorm with its 1 rig, zero balance
+  const rigs=makeLocationRigs('dorm').map(r=>({ ...r, locId:'dorm' }));
+  rigs.forEach(r=>r.state='MINING'); // first rig starts mining so they see life
+  const slot={ n, name:name||('Miner '+(n+1)), created:Date.now(),
+    balance:0, locations:['dorm'], poolId:null,
+    rigs, settings:{ costPerKwh:ECON_DEFAULTS.costPerKwh }, kwhUsed:0, lastSyncMs:Date.now() };
+  localStorage.setItem(slotKey(n), JSON.stringify(slot));
+  return slot;
+}
+function saveSlot(){ if(activeSlotN===null) return;
+  SLOT.rigs=RIGS.map(r=>({...r}));
+  // persist this slot's mined balance/state from the shared chain accumulator
+  SLOT.balance=WORLD.chain.player.balance;
+  SLOT.blocksWon=WORLD.chain.player.blocksWon;
+  SLOT.pendingPool=WORLD.chain.player.pendingPool;
+  try{ localStorage.setItem(slotKey(activeSlotN), JSON.stringify(SLOT)); }catch(e){} }
+function deleteSlot(n){ try{ localStorage.removeItem(slotKey(n)); }catch(e){} }
+
+/* ---- enter a slot: wire its rigs as RIGS, feed hashrate into the shared chain ---- */
+function enterSlot(n){
+  activeSlotN=n;
+  SLOT=readSlot(n) || newSlot(n);
+  if(!SLOT.locations) SLOT.locations=['dorm'];
+  if(SLOT.kwhUsed===undefined) SLOT.kwhUsed=0;
+  if(!SLOT.settings) SLOT.settings={ costPerKwh:ECON_DEFAULTS.costPerKwh };
+  RIGS = (SLOT.rigs||[]).map(r=>({ ...r }));
+  // ensure dorm exists
+  if(!RIGS.length){ RIGS=makeLocationRigs('dorm').map(r=>({...r,locId:'dorm'})); RIGS[0].state='MINING'; }
+  currentLocId = SLOT.locations[0] || 'dorm';
+  // restore THIS slot's balance into the shared chain's player accumulator, and
+  // capture the chain's current block height so we only credit NEW blocks to this slot
+  WORLD.chain.player.balance = SLOT.balance||0;
+  WORLD.chain.player.blocksWon = SLOT.blocksWon||0;
+  WORLD.chain.player.pendingPool = SLOT.pendingPool||0;
+  // feed this slot's hashrate + pool into the shared chain, then sync world to now
+  setPlayerHashRate(WORLD.chain, networkHashFromRigs());
+  if(SLOT.poolId) setPool(WORLD.chain, SLOT.poolId); else setRewardMode(WORLD.chain,'solo');
+  syncWorld();
+  // accrue this slot's power for elapsed time
+  const elapsedSec=Math.min((Date.now()-(SLOT.lastSyncMs||Date.now()))/1000, 86400);
+  if(elapsedSec>0) SLOT.kwhUsed += kwh(totalDrawW(), elapsedSec/3600);
+  SLOT.lastSyncMs=Date.now();
+  saveSlot(); saveWorld();
+}
+
+/* Back-compat shims so the rest of the game can keep calling APP.* and save(). */
+const APP = {
+  get chain(){ return WORLD.chain; },
+  get econ(){ return { get bbtUsd(){return WORLD.econ.bbtUsd;}, set bbtUsd(v){WORLD.econ.bbtUsd=v;},
+    get kwhUsed(){return SLOT.kwhUsed;}, set kwhUsed(v){SLOT.kwhUsed=v;},
+    get lastSyncMs(){return SLOT.lastSyncMs;}, set lastSyncMs(v){SLOT.lastSyncMs=v;} }; },
+  get settings(){ return { get costPerKwh(){return SLOT.settings.costPerKwh;}, set costPerKwh(v){SLOT.settings.costPerKwh=v;},
+    get poolId(){return SLOT.poolId;}, set poolId(v){SLOT.poolId=v;},
+    get rewardMode(){return WORLD.chain.network.rewardMode;}, set rewardMode(v){} }; },
+};
+function save(){ saveSlot(); saveWorld(); }
+function syncWorld(){
+  const now=Date.now();
+  // price drift on the shared world
+  const elapsed=Math.max(0,(now-(WORLD.econ.lastSyncMs||now))/1000);
+  if(elapsed>0){ const steps=Math.max(1,Math.round(elapsed/2)); for(let i=0;i<steps&&i<10;i++) WORLD.econ.bbtUsd=driftPrice(WORLD.econ.bbtUsd, Math.random()); }
+  WORLD.econ.lastSyncMs=now;
+  syncToTime(WORLD.chain, now);
+}
+let currentLocId='dorm';
+const SRC=makeMockSource(()=>WORLD.chain);
+
+loadWorld(); // world ready; slot is entered after slot-select screen
+
+/* ---- live tick ---- */
 let shareHistory=[], priceHistory=[];
 function playerGlobalShare(){ const net=SRC.getNetwork(); const p=SRC.getPlayer(); return net.globalHashRate>0 ? p.hashRate/net.globalHashRate : 0; }
 function tick(){
+  if(activeSlotN===null) return; // not in a slot yet
   const now=Date.now();
-  setPlayerHashRate(APP.chain, networkHashFromRigs());
+  setPlayerHashRate(WORLD.chain, networkHashFromRigs());
 
-  // accrue power + price by REAL elapsed time since last sync (not per-tick constant)
-  const elapsedSec=Math.max(0,(now-(APP.econ.lastSyncMs||now))/1000);
-  if(elapsedSec>0){
-    APP.econ.kwhUsed += kwh(totalDrawW(), elapsedSec/3600);
-    const steps=Math.max(1,Math.round(elapsedSec/2));
-    for(let i=0;i<steps && i<10;i++) APP.econ.bbtUsd=driftPrice(APP.econ.bbtUsd, Math.random());
-  }
-  APP.econ.lastSyncMs=now;
+  // accrue this slot's power by real elapsed time
+  const elapsedSec=Math.max(0,(now-(SLOT.lastSyncMs||now))/1000);
+  if(elapsedSec>0){ SLOT.kwhUsed += kwh(totalDrawW(), elapsedSec/3600); }
+  SLOT.lastSyncMs=now;
 
-  syncToTime(APP.chain, now);
+  // sync the shared world (price + deterministic chain)
+  syncWorld();
 
-  priceHistory.push(APP.econ.bbtUsd); if(priceHistory.length>60) priceHistory.shift();
+  priceHistory.push(WORLD.econ.bbtUsd); if(priceHistory.length>60) priceHistory.shift();
   shareHistory.push(playerGlobalShare());
   if(shareHistory.length>60) shareHistory.shift();
   save(); render();
@@ -294,18 +390,47 @@ const pct=n=>(n*100).toFixed(1)+'%';
 const shortAddr=id=>'rigvaloper1'+id.replace(/[^a-z0-9]/gi,'').slice(0,8).toLowerCase()+'\u2026q'+(id.length*7%97);
 const ago=ms=>{const s=Math.floor((Date.now()-ms)/1000); if(s<60)return s+'s ago'; return Math.floor(s/60)+'m ago';};
 
-/* ---- room hotspot ---- */
-const hot=document.getElementById('rigHot'), tag=document.getElementById('rigTag'), img=document.getElementById('roomImg');
-const RIG_PCT={ left:57.5, top:58.5, width:23.0, height:14.5 };
-function placeHot(){
-  hot.style.left=RIG_PCT.left+'%'; hot.style.top=RIG_PCT.top+'%';
-  hot.style.width=RIG_PCT.width+'%'; hot.style.height=RIG_PCT.height+'%';
-  tag.style.left=(RIG_PCT.left+RIG_PCT.width/2)+'%'; tag.style.top=(RIG_PCT.top-4)+'%';
+/* ---- room: location-aware, multi-rig hotspots ---- */
+const roomWrap=document.getElementById('roomWrap');
+const img=document.getElementById('roomImg');
+function renderRoom(){
+  if(activeSlotN===null) return;
+  const loc=LOCATIONS[currentLocId];
+  if(img.getAttribute('src')!==loc.img) img.src=loc.img;
+  // rebuild location tabs
+  roomWrap.querySelectorAll('.locTabs').forEach(e=>e.remove());
+  if(SLOT.locations.length>1){
+    const tabs=document.createElement('div'); tabs.className='locTabs';
+    tabs.style.cssText='position:absolute;top:8px;left:8px;display:flex;gap:6px;z-index:6;flex-wrap:wrap;max-width:90%';
+    SLOT.locations.forEach(lid=>{
+      const b=document.createElement('button');
+      b.textContent=LOCATIONS[lid].name;
+      b.style.cssText='font-family:var(--mono);font-size:10px;letter-spacing:1px;padding:5px 9px;border-radius:6px;cursor:pointer;border:1px solid '+(lid===currentLocId?'var(--phosphor)':'var(--grid)')+';background:'+(lid===currentLocId?'var(--phosphorDim)':'#0d0f14cc')+';color:'+(lid===currentLocId?'var(--void)':'var(--phosphor)');
+      b.onclick=()=>{ currentLocId=lid; renderRoom(); };
+      tabs.appendChild(b);
+    });
+    roomWrap.appendChild(tabs);
+  }
+  placeRigHotspots();
 }
-img.addEventListener('load', placeHot);
-img.addEventListener('error', function(){ document.getElementById('imgErr').style.display='block'; img.style.display='none'; hot.style.display='none'; tag.style.display='none'; });
-if(img.complete && img.naturalWidth) placeHot();
-hot.addEventListener('click', ()=>openRigStats(RIGS[0]));
+function placeRigHotspots(){
+  // always clear first so switching locations / states never stacks duplicates
+  roomWrap.querySelectorAll('.rigHotDyn').forEach(e=>e.remove());
+  if(activeSlotN===null || !img.naturalWidth) return;
+  const loc=LOCATIONS[currentLocId];
+  const locRigs=rigsInLocation(currentLocId);
+  loc.rigSpots.forEach((spot,i)=>{
+    const rig=locRigs[i]; if(!rig) return;
+    const hot=document.createElement('div'); hot.className='rigHotDyn';
+    hot.style.cssText='position:absolute;cursor:pointer;border-radius:6px;left:'+spot.left+'%;top:'+spot.top+'%;width:'+spot.width+'%;height:'+spot.height+'%;';
+    const mining = rig.state==='MINING';
+    hot.innerHTML='<div style="position:absolute;inset:0;border:2px solid '+(mining?'var(--phosphor)':'var(--textFaint)')+';border-radius:6px;opacity:.6"></div>';
+    hot.onclick=()=>openRigStats(rig);
+    roomWrap.appendChild(hot);
+  });
+}
+img.addEventListener('load', placeRigHotspots);
+img.addEventListener('error', function(){ const e=document.getElementById('imgErr'); if(e){e.style.display='block';} });
 
 /* ---- rig quick-stats sheet ---- */
 const backdrop=document.getElementById('backdrop'), sheet=document.getElementById('sheet');
@@ -744,19 +869,92 @@ function renderSettings(){
   document.getElementById('resetBtn').onclick=()=>{ if(confirm('Reset all progress? This wipes your save.')){ localStorage.removeItem(KEY); location.reload(); } };
 }
 
+/* ---- SHOP: buy locations ---- */
+function renderShop(){
+  const owned=new Set(SLOT.locations);
+  let cards='';
+  SHOP_ORDER.forEach(id=>{
+    const loc=LOCATIONS[id];
+    const isOwned=owned.has(id);
+    const canAfford=WORLD.chain.player.balance>=loc.price;
+    const rigCount=loc.rigSpots.length;
+    let action;
+    if(isOwned) action='<span style="color:var(--phosphor);font-size:12px;letter-spacing:1px">OWNED</span>';
+    else if(loc.free) action='<button class="buyBtn" data-id="'+id+'">Claim (free)</button>';
+    else action='<button class="buyBtn" data-id="'+id+'"'+(canAfford?'':' disabled style="opacity:.4;cursor:not-allowed"')+'>Buy \u00B7 '+loc.price+' BBT</button>';
+    cards+='<div class="shopCard">'+
+      '<div class="shopThumb" style="background-image:url('+loc.img+')"></div>'+
+      '<div class="shopInfo"><div class="shopName">'+loc.name+(isOwned?' <span style="color:var(--phosphor);font-size:10px">\u2713</span>':'')+'</div>'+
+      '<div class="shopBlurb">'+loc.blurb+'</div>'+
+      '<div class="shopMeta">'+rigCount+' rig'+(rigCount>1?'s':'')+' \u00B7 '+(loc.free?'free':loc.price+' BBT')+'</div></div>'+
+      '<div class="shopAction">'+action+'</div></div>';
+  });
+  document.getElementById('view-shop').innerHTML=
+    '<header style="padding:6px 0 0"><h2 style="font-size:30px;font-weight:800">Location Shop</h2>'+
+    '<div style="color:var(--textDim);font-size:13px;margin-top:4px">Balance: <b style="color:var(--coin)">'+fmt1(WORLD.chain.player.balance)+' BBT</b> \u00B7 Buy a location to add its rigs to your farm.</div></header>'+
+    '<div class="shopList">'+cards+'</div>'+
+    '<div class="note">Each location\u2019s rigs are independent and mine simultaneously into your total hashrate. Point them at the same pool to pool your wins. More locations coming soon.</div>';
+  document.querySelectorAll('.buyBtn').forEach(b=>b.onclick=()=>buyLocation(b.dataset.id));
+}
+function buyLocation(id){
+  const loc=LOCATIONS[id];
+  if(SLOT.locations.includes(id)) return;
+  if(!loc.free && WORLD.chain.player.balance<loc.price){ return; }
+  if(!loc.free){ WORLD.chain.player.balance-=loc.price; }
+  SLOT.locations.push(id);
+  // add the location's rigs (same base config), start them OFFLINE
+  const newRigs=makeLocationRigs(id).map(r=>({...r, locId:id}));
+  RIGS.push(...newRigs);
+  currentLocId=id; // jump to the new location
+  setPlayerHashRate(WORLD.chain, networkHashFromRigs());
+  save(); renderRoom(); renderShop();
+}
+
+/* ---- SLOT SELECT ---- */
+const slotScreen=document.getElementById('slotScreen');
+function showSlotSelect(){
+  slotScreen.style.display='block';
+  const sums=slotSummaries();
+  let html='';
+  sums.forEach(s=>{
+    if(s.exists){
+      html+='<div class="slotCard" data-n="'+s.n+'">'+
+        '<div class="slotInfo"><div class="slotName">'+s.name+'</div>'+
+        '<div class="slotMeta">'+fmt1(s.balance)+' BBT \u00B7 '+s.locations.length+' location'+(s.locations.length>1?'s':'')+' \u00B7 '+s.rigCount+' rigs</div></div>'+
+        '<div class="slotActions"><button class="slotPlay" data-n="'+s.n+'">Play \u2192</button>'+
+        '<button class="slotDel" data-n="'+s.n+'">\u00D7</button></div></div>';
+    } else {
+      html+='<div class="slotCard empty" data-n="'+s.n+'"><div class="slotInfo">'+
+        '<div class="slotName" style="color:var(--textFaint)">Empty slot '+(s.n+1)+'</div>'+
+        '<div class="slotMeta">New miner \u00B7 starts with the free dorm</div></div>'+
+        '<div class="slotActions"><button class="slotNew" data-n="'+s.n+'">+ New</button></div></div>';
+    }
+  });
+  document.getElementById('slotList').innerHTML=html;
+  document.querySelectorAll('.slotPlay').forEach(b=>b.onclick=()=>startSlot(+b.dataset.n));
+  document.querySelectorAll('.slotNew').forEach(b=>b.onclick=()=>{ newSlot(+b.dataset.n); startSlot(+b.dataset.n); });
+  document.querySelectorAll('.slotDel').forEach(b=>b.onclick=(e)=>{ e.stopPropagation(); if(confirm('Delete this miner permanently?')){ deleteSlot(+b.dataset.n); showSlotSelect(); } });
+}
+function startSlot(n){
+  enterSlot(n);
+  slotScreen.style.display='none';
+  renderRoom();
+  go('room');
+}
+
 /* ---- nav + master render ---- */
 let activeTab='room';
 function go(tab){
   activeTab=tab;
   document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-  document.getElementById('view-'+tab).classList.add('active');
+  const el=document.getElementById('view-'+tab); if(el) el.classList.add('active');
   document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+  if(tab==='room') renderRoom();
   render();
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>go(b.dataset.tab));
-if(location.hash==='#explore') go('explore');
-else if(location.hash==='#dash') go('dash');
 function render(){
+  if(activeSlotN===null) return;
   const net=SRC.getNetwork(); const p=SRC.getPlayer();
   document.getElementById('hudCoin').textContent='\u26C3 '+fmt(p.balance)+' BBT';
   const gShare=net.globalHashRate>0?p.hashRate/net.globalHashRate:0;
@@ -764,9 +962,12 @@ function render(){
   if(activeTab==='dash') renderDash();
   else if(activeTab==='explore') renderExplore();
   else if(activeTab==='stats') renderStats();
+  else if(activeTab==='shop') renderShop();
   else if(activeTab==='settings') renderSettings();
 }
-render();
+
+/* ---- BOOT: show slot select first ---- */
+showSlotSelect();
 </script>
 </body>
 </html>
