@@ -3,6 +3,79 @@
 All notable changes to Rig Runner / *Miner's Life* are tracked here.
 Format loosely follows Keep a Changelog. Dates are YYYY-MM-DD.
 
+## [0.2.1] — 2026-06-22
+
+Fixes block cadence and makes the chain uniform across all players.
+
+### Fixed
+- **Blocks were appearing every ~1–2s instead of every 10s.** Cause: the chain
+  was advanced by a full block per UI tick (the render loop drove cadence). The
+  chain is now a deterministic function of **wall-clock time** — it advances by
+  exactly one block per 10 real seconds regardless of how often the UI renders.
+
+### Changed
+- **Chain state separated from the player simulation** (`engine/chain.js`):
+  - Height = `floor((now − GENESIS) / blockTime)` from a fixed shared genesis
+    (2026-01-01T00:00:00Z), so every player computes the **same height and the
+    same block winners** for the same instant — uniform across all clients.
+  - Per-block winner is chosen by a **deterministic seeded RNG** (mulberry32)
+    keyed on block height, making the timeline reproducible.
+  - The player's rigs drive only their **hashrate input** (win probability),
+    not the block cadence.
+- `advance(dtSec)` replaced by `syncToTime(nowMs)`; the render loop now only
+  reads and repaints (ticks at 1s purely for UI freshness).
+- Power-bill and BBT-price accrual are now based on **real elapsed time**, not a
+  per-tick constant, so they're independent of render rate too.
+
+### Notes
+- This lays the foundation for a real shared/server-synced chain later: clients
+  already agree on height and winners from the shared genesis; a server would
+  only need to authoritatively set hashrate inputs.
+
+## [0.2] — 2026-06-22
+
+Adds the power/heat/cost economy and refactors the blockchain reward model into
+a real hash-weighted block lottery.
+
+### Added
+- **Block reward lottery** (`engine/chain.js`): 10-second blocks, each with a real
+  winner. Win probability = your hashrate / network hashrate. High-entropy RNG
+  (`crypto.getRandomValues`) so streaks and droughts are genuine luck.
+- **Solo vs. Pool mode** (Settings): Solo = winner-take-all per block (swingy);
+  Pool = steady payout proportional to your share. Same mean, different variance.
+- **BTC-style halving**: block reward starts at 50 BBT, halves every 50,000 blocks.
+- **Luck stat**: actual blocks won ÷ statistically expected — short-run variance
+  is visible; converges to ~100% over large samples.
+- **Power model** (`engine/power.js`): per-rig Low/Normal/High setting →
+  125/200/300 W per GPU + 80 W parasitic. Setting also scales hashrate
+  (0.75× / 1.0× / 1.18×), creating a real efficiency tradeoff (more power = more
+  hash but worse H/W).
+- **Heat/BTU**: total watts → BTU/hr (×3.412) and a modeled room temperature
+  rising from a fixed 72°F / 25% RH baseline.
+- **Electricity cost**: kWh tracked from draw; settable $/kWh (default $0.08) in
+  Settings; 30-day power bill accrues.
+- **BBT→USD price** with gentle simulated drift (market feel).
+- **Stats page** (legacy-calculator style): BBT price, luck %, network share,
+  efficiency, day/week/month revenue vs. power cost vs. net profit, heat & room
+  temp, and the accruing 30-day bill.
+- **Settings page**: mining mode toggle, $/kWh slider, reset-progress.
+
+### Changed
+- **Rewards are no longer proportional drip.** Solo mode is winner-take-all per
+  block; the explorer now shows the block *winner* (🏆 when it's you) instead of a
+  proposer.
+- Block time **6 s → 10 s**.
+- Rig hashrate is now **power-driven** (set by the Low/Normal/High control).
+- Save key bumped to `v0_2` (fresh state; v0.1 saves are not migrated).
+
+### Deferred / TODO
+- Weather-by-zip API for real ambient temperature (replaces fixed 72°F/25% RH).
+- Large GPU data table (per-card power/hash) — to be supplied; will replace the
+  single RX 6800 entry and the simple hashMult scaling.
+- Per-GPU sound design (blower vs. open-fan; rig spin-up) — provided per-asset later.
+- GPU upgrade & purchasing, multiple rigs, player movement, real leaderboards,
+  save slots, real Tendermint/Cosmos deployment, delegation/slashing.
+
 ## [0.1] — 2026-06-22
 
 First versioned build. Establishes the core loop, the network model, and the

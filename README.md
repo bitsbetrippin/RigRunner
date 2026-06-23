@@ -1,8 +1,8 @@
-# Rig Runner — *Miner's Life*  ·  v0.1
+# Rig Runner — *Miner's Life*  ·  v0.2.1
 
-A browser-based crypto-mining idle/sim game. Build and run GPU mining rigs, earn
-**BBT**, and climb a validator network. Runs entirely in the browser — no build
-step, no install. Open `index.html`.
+A browser-based crypto-mining idle/sim game. Build and run GPU mining rigs, win
+blocks, earn **BBT**, and weigh your hashrate against your power bill. Runs
+entirely in the browser — no build step, no install. Open `index.html`.
 
 ## Play
 
@@ -11,7 +11,7 @@ below). Click **START GAME** (or LOAD) to enter your dorm, tap the rig, and go.
 
 ```
 index.html        → title screen (START / LOAD / LEADERBOARDS)
-game.html         → dorm room + mining console + node dashboard + block explorer
+game.html         → dorm room + console + dashboard + explorer + stats + settings
 ```
 
 > Some browsers restrict `localStorage` and asset loading over `file://`. If
@@ -26,36 +26,40 @@ game.html         → dorm room + mining console + node dashboard + block explor
 | Path | What it is |
 |---|---|
 | `index.html` | Interactive title screen; routes to the game |
-| `game.html` | Room, mining console, validator dashboard, block explorer |
-| `engine/chain.js` | Mock testnet engine — decaying work-weight → PoS rewards |
+| `game.html` | Room, console, dashboard, explorer, stats, settings |
+| `engine/chain.js` | Deterministic, time-driven block-lottery engine |
+| `engine/power.js` | Power draw, heat (BTU), kWh cost, BBT↔USD price |
 | `assets/` | Pixel-art room + title-screen images |
 | `docs/ARCHITECTURE.md` | Network model & design spec |
-| `CHANGELOG.md` | Version history (starts at 0.1) |
+| `CHANGELOG.md` | Version history |
 
 ## Core concepts
 
-- **Token: BBT.** All balances and rewards are denominated in BBT.
-- **Rigs are independent machines.** Each rig has its own state machine
-  (`OFFLINE → STARTUP → MINING → STOPPING`) and hashrate. Only rigs that are
-  MINING contribute. Total live hashrate is the sum across all rigs.
-- **Mining console.** A procedural, CRT-styled scrolling miner log. Boots and
-  builds the DAG on a fresh power-on, then scrolls forever (200-line ring buffer,
-  loops seamlessly). OFFLINE shows a dark screen; STOPPING shows a shutdown.
-- **Network model.** GPU work → decaying **stake-weight** → block rewards split by
-  **stake-share** (with validator commission), settled to a mock database behind a
-  `ChainSource` interface a real Tendermint/Cosmos RPC can replace later. Full
-  detail in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+- **Token: BBT.** Balances, rewards, and the power bill are denominated in BBT
+  (converted to USD via a drifting in-game price for the cost math).
+- **Deterministic chain (uniform for all players).** Block height is a pure
+  function of wall-clock time from a fixed shared genesis: one block every 10
+  seconds, and every player computes the same height and the same winners for the
+  same instant. The render loop does not drive cadence.
+- **Block lottery.** Your win probability = your hashrate ÷ network hashrate.
+  **Solo** = winner-take-all (swingy); **Pool** = steady payout by share. Reward
+  halves BTC-style over time. **Luck %** = actual vs. statistically expected wins.
+- **Rigs are independent machines** with a state machine
+  (`OFFLINE → STARTUP → MINING → STOPPING`) and a **power setting**
+  (Low/Normal/High) that sets watts *and* hashrate — more power buys more hash at
+  worse efficiency (H/W). Rigs are the player's input into the shared timeline.
+- **Power, heat, cost.** Draw → BTU/hr heat → modeled room temp (from a fixed
+  72°F / 25% RH baseline), and → kWh × your $/kWh rate → a 30-day power bill.
+- **Stats page** = a legacy mining calculator: day/week/month revenue vs. power
+  cost vs. net profit, efficiency, network share, luck, heat, and the bill.
 
 ## Roadmap / TODO
 
-- Per-GPU **sound** (blower vs. open-fan cards; rig spin-up) — provided per-asset later
-- GPU **upgrade & purchasing** mechanics
-- **Multiple rigs** in the room (engine already supports N)
-- **Player movement** / explorable room
-- **Real leaderboards** (currently routes to the explorer)
-- **Save slots** (START vs LOAD as distinct behaviors)
-- Real **Tendermint/Cosmos testnet** deployment (interface ready)
-- **Delegation, slashing,** dynamic NPC validators
+- **Server-synced chain** (the deterministic foundation is in place)
+- **Weather-by-zip API** for real ambient temperature
+- **GPU data table** (per-card power/hash) — to be supplied
+- Per-GPU **sound**, GPU **upgrade/purchasing**, **multiple rigs**, **player movement**
+- **Real leaderboards**, **save slots**, delegation/slashing
 
 ## Assets & credits
 

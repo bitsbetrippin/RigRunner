@@ -1,23 +1,52 @@
 /**
- * chain.js — mock testnet simulation engine
+ * chain.js — deterministic mock testnet engine (v0.2.1)
  *
- * Pure logic, no I/O, no DOM. Implements the model in ARCHITECTURE.md:
- *   work -> decaying stake-weight -> PoS reward split with commission.
- * A thin ChainSource interface sits on top so a real Tendermint RPC can replace
- * the mock later without touching the dashboards.
+ * KEY CHANGE: the chain is now a pure function of WALL-CLOCK TIME, not of the
+ * render loop. Height = floor((now - GENESIS) / blockTimeSec). Every player
+ * computes the same height for the same instant — uniform across all clients,
+ * independent of device speed or how often the UI ticks.
+ *
+ * Separation of concerns:
+ *   - CHAIN STATE: deterministic timeline of blocks + winners, derived from time
+ *     and a per-height hashrate snapshot. Reproducible: same inputs -> same chain.
+ *   - PLAYER SIM: the user's rigs set their hashrate, which is their input into
+ *     the shared timeline (their win probability per block). Does NOT drive cadence.
+ *
+ * A ChainSource interface still fronts it so a real server/RPC can replace the
+ * mock later.
  */
+
+/* Fixed genesis — shared by all players. (UTC ms.) */
+const GENESIS_MS = Date.UTC(2026, 0, 1, 0, 0, 0); // 2026-01-01T00:00:00Z
 
 const DEFAULTS = {
   chainId: 'rigrunner-testnet-1',
-  blockTimeSec: 6,
-  baseBlockReward: 5,
+  blockTimeSec: 10,
+  baseBlockReward: 50,
+  halvingIntervalBlocks: 50000,
   decayHalfLifeSec: 3600,
-  weightPerHashSec: 1 / 3600,   // weight measured in "hash-hours"
-  proposerBonusPct: 0.05,
+  weightPerHashSec: 1 / 3600,
+  rewardMode: 'solo',
 };
 
-/** Build a fresh mock network: player + 4 NPC validators. */
-function createNetwork(playerHashRate = 3300, now = Date.now()) {
+/* ---- deterministic RNG (so the timeline is reproducible) ---- */
+// mulberry32: fast, seedable, good distribution. Same seed -> same stream.
+function mulberry32(seed) {
+  let a = seed >>> 0;
+  return function () {
+    a |= 0; a = (a + 0x6D2B79F5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+/** Per-block RNG seeded from height (+ optional salt) — deterministic per height. */
+function blockRng(height, salt = 0) {
+  return mulberry32(((height + 1) * 2654435761 ^ (salt * 40503)) >>> 0);
+}
+
+/** Build genesis network state. Validators carry NPC hashrates; player set live. */
+function createNetwork(playerHashRate = 3300) {
   const npc = [
     { id: 'val_npc_1', moniker: 'Hashery',       hashRate: 4200, commissionRate: 0.08 },
     { id: 'val_npc_2', moniker: 'BlockBarn',     hashRate: 2600, commissionRate: 0.12 },
@@ -25,149 +54,178 @@ function createNetwork(playerHashRate = 3300, now = Date.now()) {
     { id: 'val_npc_4', moniker: 'GigaWatt Labs', hashRate: 1800, commissionRate: 0.15 },
   ];
   const validators = [
-    { id: 'val_player', moniker: 'Dorm Rig', isPlayer: true,
-      hashRate: playerHashRate, commissionRate: 0.10 },
+    { id: 'val_player', moniker: 'Dorm Rig', isPlayer: true, hashRate: playerHashRate, commissionRate: 0.10 },
     ...npc.map(n => ({ ...n, isPlayer: false })),
-  ].map(v => ({
-    ...v,
-    // seed each near its equilibrium so the network starts "warm"
-    stakeWeight: equilibriumWeight(v.hashRate, DEFAULTS),
-    selfBalance: 0, delegatorPool: 0, uptime: 1, jailed: false,
-  }));
+  ].map(v => ({ ...v, stakeWeight: equilibriumWeight(v.hashRate, DEFAULTS),
+    selfBalance: 0, blocksWon: 0, uptime: 1, jailed: false }));
 
   return {
-    network: {
-      ...DEFAULTS,
-      height: 0,
+    network: { ...DEFAULTS, genesisMs: GENESIS_MS, height: 0,
+      networkHashRate: validators.reduce((s, v) => s + v.hashRate, 0),
       bondedWeight: validators.reduce((s, v) => s + v.stakeWeight, 0),
-      lastBlockAt: now,
-      createdAt: now,
-    },
+      lastBlockAt: GENESIS_MS },
     validators,
     blocks: [],
-    account: { balance: 0, pendingRewards: 0 },
+    account: { balance: 0 },
+    stats: { playerBlocksWon: 0, playerExpectedBlocks: 0, blocksSeen: 0,
+             processedHeight: 0, balanceFromMining: 0 },
   };
 }
 
-/** Equilibrium weight for a constant hash rate H: W* = H * wph * halfLife / ln2. */
 function equilibriumWeight(H, cfg = DEFAULTS) {
   return H * cfg.weightPerHashSec * cfg.decayHalfLifeSec / Math.LN2;
 }
-
-/** Deterministic-ish mock block hash from height+time. */
+function currentBlockReward(net) {
+  return net.baseBlockReward / Math.pow(2, Math.floor(net.height / net.halvingIntervalBlocks));
+}
+function rewardAtHeight(net, height) {
+  return net.baseBlockReward / Math.pow(2, Math.floor(height / net.halvingIntervalBlocks));
+}
 function mockHash(height, time) {
   let h = (height * 2654435761) ^ (time & 0xffffffff);
   h = (h ^ (h >>> 13)) >>> 0;
   return '0x' + h.toString(16).padStart(8, '0') + (time % 100000).toString(16).padStart(5, '0');
 }
-
-/** Seeded PRNG so proposer selection is reproducible per (height). */
-function rng(seed) {
-  let s = seed >>> 0;
-  return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; };
-}
-
-/** Pick a proposer index weighted by stakeWeight. */
-function pickProposer(validators, bondedWeight, rand) {
-  let r = rand() * bondedWeight;
-  for (let i = 0; i < validators.length; i++) {
-    r -= validators[i].stakeWeight;
-    if (r <= 0) return i;
-  }
+function pickWinner(validators, networkHash, r) {
+  let acc = r * networkHash;
+  for (let i = 0; i < validators.length; i++) { acc -= validators[i].hashRate; if (acc <= 0) return i; }
   return validators.length - 1;
 }
 
+/** The canonical height for a given wall-clock time. Uniform for all players. */
+function heightForTime(net, nowMs = Date.now()) {
+  return Math.max(0, Math.floor((nowMs - net.genesisMs) / (net.blockTimeSec * 1000)));
+}
+function timeForHeight(net, height) { return net.genesisMs + height * net.blockTimeSec * 1000; }
+
 /**
- * Advance the chain by `dtSec` seconds of simulated time.
- * Mutates and returns state. Pure w.r.t. inputs (deterministic given seedSalt).
- * `maxCatchupSec` caps offline fast-forward.
+ * Sync the chain to wall-clock time. Processes any blocks between the last
+ * processed height and the canonical current height. Cadence is purely a
+ * function of real elapsed time, so blocks land exactly every blockTimeSec.
+ *
+ * maxBlocksPerCall caps work after a long absence (we still jump height to
+ * current, but only replay reward/stat detail for the most recent N blocks).
  */
-function advance(state, dtSec, maxCatchupSec = 24 * 3600) {
-  const cfg = state.network;
-  let remaining = Math.min(Math.max(0, dtSec), maxCatchupSec);
+function syncToTime(state, nowMs = Date.now(), maxBlocksPerCall = 2000) {
+  const net = state.network;
+  const target = heightForTime(net, nowMs);
+  if (target <= net.height) { net.networkHashRate = sumHash(state); return state; }
 
-  // We step in block-sized chunks so weight + blocks stay consistent.
-  const step = cfg.blockTimeSec;
-  while (remaining > 0) {
-    const dt = Math.min(step, remaining);
-    remaining -= dt;
+  net.networkHashRate = sumHash(state);
+  const player = state.validators.find(v => v.isPlayer);
 
-    // 1. decay + work gain for every validator
-    const decay = Math.pow(0.5, dt / cfg.decayHalfLifeSec);
-    for (const v of state.validators) {
-      const gain = v.hashRate * cfg.weightPerHashSec * dt;
-      v.stakeWeight = v.stakeWeight * decay + gain;
+  // only fully process the most recent window; older blocks just advance height
+  const from = Math.max(net.height + 1, target - maxBlocksPerCall + 1);
+  if (from > net.height + 1) {
+    // we skipped a big gap (long offline) — account expected/won statistically
+    // for the skipped span using current hashrate snapshot (approximation).
+    const skipped = from - 1 - net.height;
+    const share = net.networkHashRate > 0 ? player.hashRate / net.networkHashRate : 0;
+    state.stats.blocksSeen += skipped;
+    state.stats.playerExpectedBlocks += skipped * share;
+    // credit expected winnings across the skip (smooth, avoids replaying RNG)
+    let credited = 0, wins = 0;
+    for (let h = net.height + 1; h < from; h++) {
+      const rew = rewardAtHeight(net, h);
+      // expected value contribution
+      credited += rew * share;
     }
-    // 2. recompute bonded weight
-    cfg.bondedWeight = state.validators.reduce((s, v) => s + v.stakeWeight, 0);
-
-    // 3. produce a block if it's time
-    cfg.lastBlockAt += dt * 1000;
-    if (dt >= step - 1e-9 && cfg.bondedWeight > 0) {
-      produceBlock(state);
+    if (net.rewardMode === 'solo') {
+      // convert expected value into whole-block wins probabilistically but
+      // deterministically per height so it stays uniform
+      for (let h = net.height + 1; h < from; h++) {
+        const rng = blockRng(h);
+        const wi = pickWinner(state.validators, net.networkHashRate, rng());
+        if (state.validators[wi].isPlayer) { player.selfBalance += rewardAtHeight(net, h); player.blocksWon++; wins++; state.stats.playerBlocksWon++; }
+        else state.validators[wi].selfBalance += rewardAtHeight(net, h);
+      }
+    } else {
+      for (const v of state.validators) {
+        const s = net.networkHashRate > 0 ? v.hashRate / net.networkHashRate : 0;
+        for (let h = net.height + 1; h < from; h++) v.selfBalance += rewardAtHeight(net, h) * s;
+      }
     }
+    net.height = from - 1;
   }
+
+  for (let h = from; h <= target; h++) {
+    processBlock(state, h, /*record=*/ (target - h) < 60);
+  }
+  net.height = target;
+  net.lastBlockAt = timeForHeight(net, target);
+  net.networkHashRate = sumHash(state);
+  state.account.balance = player.selfBalance;
   return state;
 }
 
-function produceBlock(state) {
-  const cfg = state.network;
-  cfg.height += 1;
-  const rand = rng(cfg.height * 2246822519);
-  const pIdx = pickProposer(state.validators, cfg.bondedWeight, rand);
-  const proposer = state.validators[pIdx];
+function sumHash(state){ return state.validators.reduce((s,v)=>s+v.hashRate,0); }
 
-  const distribution = {};
-  let minted = 0;
-  for (const v of state.validators) {
-    const share = v.stakeWeight / cfg.bondedWeight;
-    let gross = cfg.baseBlockReward * share;
-    if (v.id === proposer.id) gross += cfg.baseBlockReward * cfg.proposerBonusPct;
-    const commission = gross * v.commissionRate;
-    const delegated = gross - commission;
-    // player is self-delegated in v0.1 -> gets full gross
-    if (v.isPlayer) { v.selfBalance += gross; }
-    else { v.selfBalance += commission; v.delegatorPool += delegated; }
-    distribution[v.id] = gross;
-    minted += gross;
+/** Process exactly one block at a given height. Deterministic given height + hashrates. */
+function processBlock(state, height, record) {
+  const net = state.network;
+  const player = state.validators.find(v => v.isPlayer);
+  const netHash = net.networkHashRate;
+  const reward = rewardAtHeight(net, height);
+  const share = netHash > 0 ? player.hashRate / netHash : 0;
+
+  state.stats.blocksSeen += 1;
+  state.stats.playerExpectedBlocks += share;
+
+  const rng = blockRng(height);
+  let distribution = {}, winnerId = null, winnerMoniker = null;
+
+  if (net.rewardMode === 'pool') {
+    for (const v of state.validators) {
+      const s = netHash > 0 ? v.hashRate / netHash : 0;
+      const amt = reward * s; v.selfBalance += amt; if (record) distribution[v.id] = amt;
+    }
+    const wi = pickWinner(state.validators, netHash, rng());
+    winnerId = state.validators[wi].id; winnerMoniker = state.validators[wi].moniker;
+    if (winnerId === player.id) { player.blocksWon++; state.stats.playerBlocksWon++; }
+  } else {
+    const wi = pickWinner(state.validators, netHash, rng());
+    const winner = state.validators[wi];
+    winner.selfBalance += reward; winner.blocksWon++;
+    if (record) distribution[winner.id] = reward;
+    winnerId = winner.id; winnerMoniker = winner.moniker;
+    if (winner.isPlayer) state.stats.playerBlocksWon++;
   }
-  state.account.balance = state.validators.find(v => v.isPlayer).selfBalance;
 
-  state.blocks.push({
-    height: cfg.height,
-    time: cfg.lastBlockAt,
-    proposer: proposer.id,
-    proposerMoniker: proposer.moniker,
-    reward: minted,
-    txCount: Math.floor(rand() * 40),
-    hash: mockHash(cfg.height, cfg.lastBlockAt),
-    distribution,
-  });
-  // cap stored blocks
-  if (state.blocks.length > 50) state.blocks = state.blocks.slice(-50);
+  if (record) {
+    const t = timeForHeight(net, height);
+    state.blocks.push({ height, time: t, mode: net.rewardMode, winner: winnerId,
+      winnerMoniker, playerWon: winnerId === player.id, reward,
+      txCount: Math.floor(rng() * 40), hash: mockHash(height, t), distribution });
+    if (state.blocks.length > 60) state.blocks = state.blocks.slice(-60);
+  }
 }
 
-/** ChainSource interface — the seam a real RPC will implement later. */
 function makeMockSource(getState) {
   return {
     getNetwork: () => getState().network,
-    getValidators: () => getState().validators.slice().sort((a, b) => b.stakeWeight - a.stakeWeight),
+    getValidators: () => getState().validators.slice().sort((a, b) => b.hashRate - a.hashRate),
     getLatestBlocks: (n = 12) => getState().blocks.slice(-n).reverse(),
     getAccount: () => getState().account,
     getPlayer: () => getState().validators.find(v => v.isPlayer),
+    getStats: () => getState().stats,
   };
 }
 
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { DEFAULTS, createNetwork, equilibriumWeight, advance, produceBlock, pickProposer, makeMockSource, mockHash, rng };
-}
-
-/* Integration helper: set the player validator's hash rate (e.g. rig online/offline,
-   or future GPU upgrades). Keeps the economy driven by the room's rig. */
-function setPlayerHashRate(state, hr){
+function setPlayerHashRate(state, hr) {
   const p = state.validators.find(v => v.isPlayer);
   if (p) p.hashRate = Math.max(0, hr);
+  state.network.networkHashRate = sumHash(state);
 }
+function setRewardMode(state, mode) { if (mode === 'solo' || mode === 'pool') state.network.rewardMode = mode; }
+function playerLuck(state) {
+  const e = state.stats.playerExpectedBlocks;
+  return e > 0 ? state.stats.playerBlocksWon / e : 1;
+}
+
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports.setPlayerHashRate = setPlayerHashRate;
+  module.exports = {
+    GENESIS_MS, DEFAULTS, createNetwork, equilibriumWeight, currentBlockReward, rewardAtHeight,
+    heightForTime, timeForHeight, syncToTime, processBlock, pickWinner, makeMockSource,
+    mockHash, setPlayerHashRate, setRewardMode, playerLuck, blockRng,
+  };
 }
