@@ -3,6 +3,35 @@
 All notable changes to Rig Runner / *Miner's Life* are tracked here.
 Format loosely follows Keep a Changelog. Dates are YYYY-MM-DD.
 
+## [0.5] — 2026-06-22
+
+Adds a full multi-category parts store, a shopping cart, a parts inventory, and
+custom rig assembly from individual components.
+
+### Added
+- **Parts store** with 10 categories: GPUs (all 49 from the reference sheet),
+  Cases/Frames, Motherboards, CPU, Memory, SSD, USB Sticks, GPU Risers, Case
+  Fans, Power Supplies — plus the existing Locations.
+- **Shopping cart**: add parts, see subtotal → **5% sales tax** → total in BBT,
+  charged against the slot balance at checkout. Purchased parts land in a
+  per-slot **Parts Owned** inventory as individual swappable objects.
+- **49 real GPUs** with hashrate + power **ranges** mapped to the rig power
+  setting: low = min hash/min watts (efficient), normal = midpoint, high =
+  max/max. Hashrates assumed identical for the BBT network.
+- **Custom rig assembly**: build a rig from owned parts. A valid rig requires a
+  **case + matching motherboard** (both come in 6/8/12/19 sizes and must match),
+  CPU, memory, SSD-or-USB boot drive, GPU risers, a PSU, and **≥2 GPUs**. The
+  case/board size caps GPU count (2 up to the slot max). Mixed-GPU rigs supported.
+- Built rigs can be **placed in any owned location** and mine alongside the rest.
+
+### Notes
+- Part prices are **starter values** — override them all via the included
+  `parts_pricing.csv` (every item, with hashrate/power specs for reference).
+- A full 6× RX 6800 rig costs ~993 BBT (946 subtotal + 47.3 tax) — a meaningful
+  investment against the slowed mining economy.
+- Deferred: dual-PSU requirement above 8 GPUs; per-part swap UI on existing rigs;
+  fans as a cooling/heat perk; loading prices from CSV at runtime.
+
 ## [0.4] — 2026-06-22
 
 Adds save slots, multiple locations, and a location shop.

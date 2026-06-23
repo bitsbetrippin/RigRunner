@@ -155,11 +155,45 @@
   .shopMeta{color:var(--textFaint);font-size:10px;letter-spacing:1px;margin-top:4px;text-transform:uppercase}
   .shopAction{flex:none}
   .buyBtn{background:var(--phosphorDim);color:var(--void);border-radius:9px;padding:11px 14px;font-weight:800;letter-spacing:1px;font-size:12px;cursor:pointer}
+
+  /* store v0.5 */
+  .stTabs{display:flex;gap:6px;overflow-x:auto;padding:10px 0;margin-bottom:4px;-webkit-overflow-scrolling:touch}
+  .stTab{flex:none;font-size:11px;letter-spacing:.5px;padding:8px 12px;border-radius:8px;cursor:pointer;border:1px solid var(--grid);background:var(--panel);color:var(--textDim);white-space:nowrap}
+  .stTab.on{border-color:var(--phosphor);background:var(--phosphorDim);color:var(--void);font-weight:700}
+  .cartBar{position:sticky;top:0;z-index:5;padding:6px 0}
+  .cartToggle{width:100%;background:var(--panelHi);border:1px solid var(--phosphorDim);color:var(--phosphor);border-radius:10px;padding:11px;font-weight:700;font-size:13px;cursor:pointer}
+  .cartPanel{background:var(--panel);border:1px solid var(--grid);border-radius:12px;padding:12px;margin-bottom:10px}
+  .cartRow{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px}
+  .cName{flex:1;min-width:0}
+  .cPrice{color:var(--coin)}
+  .rmCart{background:var(--panelHi);color:var(--ember);border:1px solid var(--grid);border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:16px}
+  .cartTot{display:flex;justify-content:space-between;font-size:13px;color:var(--textDim);padding:3px 0;margin-top:2px}
+  .cartTot.total{color:var(--text);font-weight:800;font-size:15px;border-top:1px solid var(--grid);margin-top:6px;padding-top:8px}
+  .checkoutBtn{width:100%;background:var(--phosphorDim);color:var(--void);border-radius:10px;padding:13px;font-weight:800;letter-spacing:1px;font-size:13px;cursor:pointer;margin-top:10px}
+  .partList{display:flex;flex-direction:column;gap:7px}
+  .partRow{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--grid);border-radius:10px;padding:11px 12px}
+  .partInfo{flex:1;min-width:0}
+  .partName{font-size:13px;font-weight:600}
+  .partSpec{color:var(--textDim);font-size:11px;margin-top:2px}
+  .partPrice{color:var(--coin);font-size:13px;font-weight:700;flex:none}
+  .addCart{flex:none;background:var(--panelHi);color:var(--phosphor);border:1px solid var(--phosphorDim);border-radius:8px;padding:8px 12px;font-size:12px;font-weight:700;cursor:pointer}
+  .ownGroup{margin-bottom:12px}
+  .ownHead{font-size:12px;letter-spacing:1px;color:var(--phosphor);margin-bottom:5px}
+  .ownRow{display:flex;justify-content:space-between;font-size:13px;padding:4px 8px;background:var(--panel);border:1px solid var(--grid);border-radius:8px;margin-bottom:4px}
+  .buildCard{display:flex;justify-content:space-between;gap:10px;background:var(--panel);border:1px solid var(--grid);border-radius:10px;padding:11px;margin-bottom:7px}
+  .assembleBtn{width:100%;background:var(--amber);color:var(--void);border-radius:10px;padding:13px;font-weight:800;font-size:13px;cursor:pointer;margin-bottom:8px}
+  .asmRow{display:flex;align-items:center;gap:10px;margin:9px 0}
+  .asmRow label{flex:none;width:120px;font-size:12px;color:var(--textDim)}
+  .asmSel,#asmLoc,.asmGpuAdd{flex:1;background:var(--panelHi);color:var(--text);border:1px solid var(--grid);border-radius:8px;padding:9px;font-family:var(--mono);font-size:12px}
+  .asmGpuList{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0}
+  .asmChip{background:var(--panelHi);border:1px solid var(--phosphorDim);color:var(--phosphor);border-radius:6px;padding:5px 9px;font-size:11px;cursor:pointer}
+  .asmValid{margin:12px 0;padding:10px;border-radius:8px;background:var(--panel);border:1px solid var(--amber);color:var(--amber);font-size:12px;line-height:1.6}
+  .asmValid.ok{border-color:var(--phosphor);color:var(--phosphor)}
 </style>
 </head>
 <body>
 <header>
-  <div class="brand">RIG RUNNER &middot; DORM 1 <span class="ver">v0.4</span></div>
+  <div class="brand">RIG RUNNER &middot; DORM 1 <span class="ver">v0.5</span></div>
   <div class="hud">
     <span class="coin" id="hudCoin">&#9923; 0 BBT</span>
     <span class="rate" id="hudRate">0 H/s</span>
@@ -219,6 +253,7 @@
 <script src="engine/chain.js"></script>
 <script src="engine/power.js"></script>
 <script src="engine/locations.js"></script>
+<script src="engine/parts.js"></script>
 <script>
 /* =========================================================================
    Rig Runner v0.1 — integrated build
@@ -234,10 +269,42 @@ const GPU_CATALOG={ rx6800:{ name:'AMD RX 6800', mhPerCard:28, watts:230 } };
 let RIGS=[];
 
 function rigGpu(r){ return GPU_CATALOG[r.gpu]; }
-function rigFullHash(r){ return rigPowerHash(r, rigGpu(r).mhPerCard); }
+/* Hashrate: preset rigs use the dorm GPU model; custom builds sum their GPU list
+   at the rig's power level (low/normal/high mapped from each GPU's range). */
+function rigFullHash(r){
+  if(r.custom && r.gpus){
+    const lvl=r.power||'normal';
+    return r.gpus.reduce((s,gid)=>{ const g=partById(gid); return s + (g?gpuStats(g,lvl).mh:0); },0);
+  }
+  return rigPowerHash(r, rigGpu(r).mhPerCard);
+}
+function rigWattsTotal(r){
+  if(r.custom && r.gpus){
+    const lvl=r.power||'normal';
+    return r.gpus.reduce((s,gid)=>{ const g=partById(gid); return s + (g?gpuStats(g,lvl).watts:0); },0) + 80; // +parasitic
+  }
+  return rigWatts(r);
+}
 function rigLiveHash(r){ return r.state==='MINING' ? rigFullHash(r) : 0; }
+/* Display helpers that work for BOTH preset (single GPU model) and custom rigs. */
+function rigGpuLabel(r){
+  if(r.custom && r.gpus){
+    const names=[...new Set(r.gpus.map(g=>{const p=partById(g);return p?p.name:'GPU';}))];
+    return names.length===1?names[0]:'Mixed GPUs';
+  }
+  return rigGpu(r).name;
+}
+/* Per-card list: [{name, watts, mh}] at the rig's power level. */
+function rigCardList(r){
+  const lvl=r.power||'normal';
+  if(r.custom && r.gpus){
+    return r.gpus.map(g=>{const p=partById(g); const st=p?gpuStats(p,lvl):{mh:0,watts:0}; return {name:p?p.name:'GPU', watts:st.watts, mh:st.mh};});
+  }
+  const g=rigGpu(r); const per=rigPowerHash(r,g.mhPerCard)/r.count;
+  return Array.from({length:r.count},()=>({name:g.name, watts:g.watts, mh:per}));
+}
 function networkHashFromRigs(){ return RIGS.reduce((s,r)=>s+rigLiveHash(r),0); }
-function rigDrawW(r){ return r.state==='OFFLINE' ? 0 : rigWatts(r); }
+function rigDrawW(r){ return r.state==='OFFLINE' ? 0 : rigWattsTotal(r); }
 function totalDrawW(){ return RIGS.reduce((s,r)=>s+rigDrawW(r),0); }
 function totalBtu(){ return wattsToBtu(totalDrawW()); }
 function rigsInLocation(locId){ return RIGS.filter(r=>r.locId===locId); }
@@ -296,7 +363,9 @@ function newSlot(n, name){
   rigs.forEach(r=>r.state='MINING'); // first rig starts mining so they see life
   const slot={ n, name:name||('Miner '+(n+1)), created:Date.now(),
     balance:0, locations:['dorm'], poolId:null,
-    rigs, settings:{ costPerKwh:ECON_DEFAULTS.costPerKwh }, kwhUsed:0, lastSyncMs:Date.now() };
+    rigs, settings:{ costPerKwh:ECON_DEFAULTS.costPerKwh }, kwhUsed:0, lastSyncMs:Date.now(),
+    parts:[],   // owned loose parts: [{uid, id, _section}]
+    builds:[] }; // assembled rigs from bought parts (separate from location preset rigs)
   localStorage.setItem(slotKey(n), JSON.stringify(slot));
   return slot;
 }
@@ -316,6 +385,9 @@ function enterSlot(n){
   if(!SLOT.locations) SLOT.locations=['dorm'];
   if(SLOT.kwhUsed===undefined) SLOT.kwhUsed=0;
   if(!SLOT.settings) SLOT.settings={ costPerKwh:ECON_DEFAULTS.costPerKwh };
+  if(!SLOT.parts) SLOT.parts=[];
+  if(!SLOT.builds) SLOT.builds=[];
+  if(!CART) CART=[];
   RIGS = (SLOT.rigs||[]).map(r=>({ ...r }));
   // ensure dorm exists
   if(!RIGS.length){ RIGS=makeLocationRigs('dorm').map(r=>({...r,locId:'dorm'})); RIGS[0].state='MINING'; }
@@ -415,7 +487,7 @@ function renderRoom(){
 }
 function placeRigHotspots(){
   // always clear first so switching locations / states never stacks duplicates
-  roomWrap.querySelectorAll('.rigHotDyn').forEach(e=>e.remove());
+  roomWrap.querySelectorAll('.rigHotDyn,.rigOverflow').forEach(e=>e.remove());
   if(activeSlotN===null || !img.naturalWidth) return;
   const loc=LOCATIONS[currentLocId];
   const locRigs=rigsInLocation(currentLocId);
@@ -428,6 +500,17 @@ function placeRigHotspots(){
     hot.onclick=()=>openRigStats(rig);
     roomWrap.appendChild(hot);
   });
+  // custom-built rigs beyond the preset frames: show as chips so they're reachable
+  const extra=locRigs.slice(loc.rigSpots.length);
+  if(extra.length){
+    const bar=document.createElement('div'); bar.className='rigOverflow';
+    bar.style.cssText='position:absolute;left:8px;bottom:8px;right:8px;display:flex;gap:6px;flex-wrap:wrap;z-index:6';
+    extra.forEach(rig=>{ const c=document.createElement('button');
+      c.textContent=rig.label+' \u00B7 '+fmt(rigLiveHash(rig))+'MH';
+      c.style.cssText='font-family:var(--mono);font-size:10px;padding:6px 9px;border-radius:6px;cursor:pointer;border:1px solid '+(rig.state==='MINING'?'var(--phosphor)':'var(--grid)')+';background:#0d0f14dd;color:var(--phosphor)';
+      c.onclick=()=>openRigStats(rig); bar.appendChild(c); });
+    roomWrap.appendChild(bar);
+  }
 }
 img.addEventListener('load', placeRigHotspots);
 img.addEventListener('error', function(){ const e=document.getElementById('imgErr'); if(e){e.style.display='block';} });
@@ -437,20 +520,21 @@ const backdrop=document.getElementById('backdrop'), sheet=document.getElementByI
 let activeRig=RIGS[0];
 function openRigStats(rig){
   activeRig=rig;
-  const gpu=rigGpu(rig); const full=rigFullHash(rig);
+  const full=rigFullHash(rig);
   const p=SRC.getPlayer(), net=SRC.getNetwork();
   const share=net.globalHashRate>0 ? rigLiveHash(rig)/net.globalHashRate : 0;
   const mining = rig.state==='MINING';
-  const perCardMh=rigPowerHash(rig, gpu.mhPerCard)/rig.count;
+  const cards=rigCardList(rig);
   let rows='';
-  for(let i=0;i<rig.count;i++){
+  cards.forEach((c,i)=>{
     rows+='<div class="gpuRow"><span class="dot '+(mining?'':'off')+'"></span><div class="info">'+
-      '<div class="name">'+gpu.name+' <span style="color:var(--textFaint)">\u00B7 slot '+(i+1)+'</span></div>'+
-      '<div class="meta">'+gpu.watts+' W \u00B7 '+rig.state+'</div></div>'+
-      '<div class="rate">'+(mining?perCardMh.toFixed(0):0)+' MH/s</div></div>';
-  }
-  const watts=rigDrawW(rig)||rigWatts(rig);
+      '<div class="name">'+c.name+' <span style="color:var(--textFaint)">\u00B7 slot '+(i+1)+'</span></div>'+
+      '<div class="meta">'+c.watts+' W \u00B7 '+rig.state+'</div></div>'+
+      '<div class="rate">'+(mining?c.mh.toFixed(0):0)+' MH/s</div></div>';
+  });
+  const watts=rigDrawW(rig)||rigWattsTotal(rig);
   const btu=Math.round(wattsToBtu(watts));
+  const gpuLabel=rigGpuLabel(rig);
   // pool selector options
   const pools=SRC.getPools();
   let poolOpts='<option value="solo"'+(APP.settings.poolId?'':' selected')+'>\u26A1 Solo (winner-take-all)</option>';
@@ -459,7 +543,7 @@ function openRigStats(rig){
   const poolLine=curPool? curPool.name+' \u00B7 '+curPool.host+':'+curPool.port+' \u00B7 '+(curPool.fee*100).toFixed(1)+'% fee'
                         : 'Solo mining \u00B7 you vs. the whole network';
   sheet.innerHTML='<div class="sheetHead"><div><h2>'+rig.label+'</h2>'+
-    '<div class="sub">'+rig.count+'\u00D7 '+gpu.name+' \u00B7 '+rig.state+'</div></div>'+
+    '<div class="sub">'+rig.count+'\u00D7 '+gpuLabel+' \u00B7 '+rig.state+'</div></div>'+
     '<button class="closeX" id="closeRig">\u00D7</button></div>'+
     '<div class="totals">'+
     '<div class="tcard"><div class="v" style="color:var(--phosphor)">'+fmt(rigLiveHash(rig))+'</div><div class="l">MH/s LIVE</div></div>'+
@@ -555,7 +639,7 @@ let consoleTimer=null, consoleRig=null;
 const MAX_LINES=200;
 let logLines=[]; // ring buffer of {html,cls}
 
-function mhPerCard(rig){ const b=rigGpu(rig).mhPerCard; return b+(Math.random()*2-1); }
+function mhPerCard(rig){ const b=rig.custom?(rigFullHash(rig)/Math.max(1,rig.count)):rigGpu(rig).mhPerCard; return b+(Math.random()*2-1); }
 function nowClock(){ const d=new Date(); const p=n=>String(n).padStart(2,'0');
   return `${p(d.getMonth()+1)}/${p(d.getDate())}/${String(d.getFullYear()).slice(2)}-${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`; }
 
@@ -614,18 +698,19 @@ function refreshConsoleForState(rig, justOpened){
 }
 
 function bootSequence(rig){
-  const gpu=rigGpu(rig);
+  const cards=rigCardList(rig);
+  const gpuLabel=rigGpuLabel(rig);
   const tgt=miningTarget();
   crtStatus.textContent='initializing\u2026';
   const steps=[
-    ['RIG RUNNER miner v0.9.2 \u2014 '+rig.count+'x '+gpu.name, 'c-ok', 250],
+    ['RIG RUNNER miner v0.9.2 \u2014 '+rig.count+'x '+gpuLabel, 'c-ok', 250],
     ['Loading OpenCL platform AMD Accelerated Parallel Processing\u2026', 'c-dim', 350],
-    ...Array.from({length:rig.count},(_,i)=>['Detected GPU'+i+': '+gpu.name+'  '+gpu.watts+'W  16GB', 'c-eth', 150]),
+    ...cards.map((c,i)=>['Detected GPU'+i+': '+c.name+'  '+c.watts+'W', 'c-eth', 150]),
     [(tgt.solo?'Starting SOLO miner \u2014 local node ':'Connecting to pool '+tgt.name+' ')+tgt.label+' \u2026', 'c-job', 380],
     [tgt.solo?'Solo mode \u2014 mining directly to your wallet':'Authorized on '+tgt.name+'. Subscribed to mining.notify', 'c-ok', 280],
     ...Array.from({length:rig.count},(_,i)=>['Building DAG for GPU'+i+' \u2026 epoch 482', 'c-dim', 200]),
     ['DAG generation complete ('+rig.count+' GPUs) \u2014 '+(3*rig.count)+'.0 GB', 'c-ok', 320],
-    ['ETH: Mining started on '+(tgt.solo?'SOLO':tgt.name)+'. target '+(rigGpu(rig).mhPerCard*rig.count).toFixed(1)+' Mh/s ('+fmt(rigFullHash(rig))+' MH/s)', 'c-eth', 300],
+    ['ETH: Mining started on '+(tgt.solo?'SOLO':tgt.name)+'. target '+rigFullHash(rig).toFixed(1)+' Mh/s', 'c-eth', 300],
   ];
   let i=0;
   (function next(){
@@ -710,7 +795,7 @@ function renderDash(){
   const pool=inPool?poolById(APP.chain,APP.settings.poolId):null;
   let rigCards='';
   RIGS.forEach(r=>{ rigCards+='<div class="rigCard"><div class="info">'+
-    '<div class="nm">'+r.label+'</div><div class="sub">'+r.count+'\u00D7 '+rigGpu(r).name+' \u00B7 '+fmt(rigLiveHash(r))+' MH/s live</div></div>'+
+    '<div class="nm">'+r.label+'</div><div class="sub">'+r.count+'\u00D7 '+rigGpuLabel(r)+' \u00B7 '+fmt(rigLiveHash(r))+' MH/s live</div></div>'+
     '<span class="st '+r.state+'">'+r.state+'</span></div>'; });
   const statusTxt=!anyMining?'IDLE':(inPool?'POOL':'SOLO');
   const statusCls=!anyMining?'warn':(inPool?'':'mid');
@@ -870,43 +955,221 @@ function renderSettings(){
 }
 
 /* ---- SHOP: buy locations ---- */
+/* ============================================================
+   STORE (v0.5): Locations + Parts categories, cart, inventory, assembly
+   ============================================================ */
+let CART=[];                 // [{id, _section, price, qty}]
+let storeTab='locations';    // 'locations' | section key | 'owned'
+let cartOpen=false;
+
+function priceOf(id){ const p=partById(id); return p?(p.price||0):0; }
+function cartSubtotal(){ return CART.reduce((s,l)=>s+priceOf(l.id)*l.qty,0); }
+function cartTax(){ return cartSubtotal()*SALES_TAX; }
+function cartTotal(){ return cartSubtotal()+cartTax(); }
+function cartCount(){ return CART.reduce((s,l)=>s+l.qty,0); }
+function addToCart(id){ const p=partById(id); if(!p)return; const line=CART.find(l=>l.id===id); if(line)line.qty++; else CART.push({id,_section:p._section,qty:1}); renderShop(); }
+function removeFromCart(id){ const i=CART.findIndex(l=>l.id===id); if(i>=0){ if(CART[i].qty>1)CART[i].qty--; else CART.splice(i,1);} renderShop(); }
+
+function checkout(){
+  const total=cartTotal();
+  if(total>WORLD.chain.player.balance){ alert('Not enough BBT. Total '+total.toFixed(1)+' BBT, you have '+fmt1(WORLD.chain.player.balance)+'.'); return; }
+  WORLD.chain.player.balance-=total;
+  // add each purchased unit to Parts Owned as an individual object
+  let uid=Date.now();
+  CART.forEach(line=>{ for(let i=0;i<line.qty;i++){ SLOT.parts.push({ uid:'p'+(uid++), id:line.id, _section:line._section }); } });
+  CART=[]; cartOpen=false;
+  save(); renderShop();
+}
+
 function renderShop(){
-  const owned=new Set(SLOT.locations);
-  let cards='';
+  const bal=WORLD.chain.player.balance;
+  // top: balance + cart button + category tabs
+  let tabs='<button class="stTab'+(storeTab==='locations'?' on':'')+'" data-st="locations">\u{1F3E0} Locations</button>';
+  STORE_SECTIONS.forEach(s=>{ tabs+='<button class="stTab'+(storeTab===s.key?' on':'')+'" data-st="'+s.key+'">'+s.icon+' '+s.label+'</button>'; });
+  tabs+='<button class="stTab'+(storeTab==='owned'?' on':'')+'" data-st="owned">\u{1F4E6} Parts Owned ('+SLOT.parts.length+')</button>';
+
+  let body='';
+  if(storeTab==='locations') body=renderLocShop();
+  else if(storeTab==='owned') body=renderOwned();
+  else body=renderPartsSection(storeTab);
+
+  const cartBar='<div class="cartBar"><button class="cartToggle" id="cartToggle">\u{1F6D2} Cart ('+cartCount()+') \u00B7 '+fmt1(cartTotal())+' BBT</button></div>';
+  const cartPanel = cartOpen ? renderCart() : '';
+
+  document.getElementById('view-shop').innerHTML=
+    '<header style="padding:6px 0 0"><h2 style="font-size:26px;font-weight:800">Store</h2>'+
+    '<div style="color:var(--textDim);font-size:13px;margin-top:4px">Balance: <b style="color:var(--coin)">'+fmt1(bal)+' BBT</b></div></header>'+
+    '<div class="stTabs">'+tabs+'</div>'+
+    cartBar + cartPanel +
+    '<div class="stBody">'+body+'</div>';
+
+  // wire tabs
+  document.querySelectorAll('.stTab').forEach(b=>b.onclick=()=>{ storeTab=b.dataset.st; cartOpen=false; renderShop(); });
+  document.getElementById('cartToggle').onclick=()=>{ cartOpen=!cartOpen; renderShop(); };
+  document.querySelectorAll('.buyLoc').forEach(b=>b.onclick=()=>buyLocation(b.dataset.id));
+  document.querySelectorAll('.addCart').forEach(b=>b.onclick=()=>addToCart(b.dataset.id));
+  document.querySelectorAll('.rmCart').forEach(b=>b.onclick=()=>removeFromCart(b.dataset.id));
+  const co=document.getElementById('checkoutBtn'); if(co) co.onclick=checkout;
+  const asm=document.getElementById('assembleBtn'); if(asm) asm.onclick=openAssembly;
+}
+
+function renderLocShop(){
+  const owned=new Set(SLOT.locations); let cards='';
   SHOP_ORDER.forEach(id=>{
-    const loc=LOCATIONS[id];
-    const isOwned=owned.has(id);
-    const canAfford=WORLD.chain.player.balance>=loc.price;
-    const rigCount=loc.rigSpots.length;
+    const loc=LOCATIONS[id]; const isOwned=owned.has(id);
+    const canAfford=WORLD.chain.player.balance>=loc.price; const rigCount=loc.rigSpots.length;
     let action;
     if(isOwned) action='<span style="color:var(--phosphor);font-size:12px;letter-spacing:1px">OWNED</span>';
-    else if(loc.free) action='<button class="buyBtn" data-id="'+id+'">Claim (free)</button>';
-    else action='<button class="buyBtn" data-id="'+id+'"'+(canAfford?'':' disabled style="opacity:.4;cursor:not-allowed"')+'>Buy \u00B7 '+loc.price+' BBT</button>';
-    cards+='<div class="shopCard">'+
-      '<div class="shopThumb" style="background-image:url('+loc.img+')"></div>'+
+    else if(loc.free) action='<button class="buyLoc" data-id="'+id+'">Claim (free)</button>';
+    else action='<button class="buyLoc" data-id="'+id+'"'+(canAfford?'':' disabled style="opacity:.4;cursor:not-allowed"')+'>Buy \u00B7 '+loc.price+' BBT</button>';
+    cards+='<div class="shopCard"><div class="shopThumb" style="background-image:url('+loc.img+')"></div>'+
       '<div class="shopInfo"><div class="shopName">'+loc.name+(isOwned?' <span style="color:var(--phosphor);font-size:10px">\u2713</span>':'')+'</div>'+
-      '<div class="shopBlurb">'+loc.blurb+'</div>'+
-      '<div class="shopMeta">'+rigCount+' rig'+(rigCount>1?'s':'')+' \u00B7 '+(loc.free?'free':loc.price+' BBT')+'</div></div>'+
+      '<div class="shopBlurb">'+loc.blurb+'</div><div class="shopMeta">'+rigCount+' rig'+(rigCount>1?'s':'')+' \u00B7 '+(loc.free?'free':loc.price+' BBT')+'</div></div>'+
       '<div class="shopAction">'+action+'</div></div>';
   });
-  document.getElementById('view-shop').innerHTML=
-    '<header style="padding:6px 0 0"><h2 style="font-size:30px;font-weight:800">Location Shop</h2>'+
-    '<div style="color:var(--textDim);font-size:13px;margin-top:4px">Balance: <b style="color:var(--coin)">'+fmt1(WORLD.chain.player.balance)+' BBT</b> \u00B7 Buy a location to add its rigs to your farm.</div></header>'+
-    '<div class="shopList">'+cards+'</div>'+
-    '<div class="note">Each location\u2019s rigs are independent and mine simultaneously into your total hashrate. Point them at the same pool to pool your wins. More locations coming soon.</div>';
-  document.querySelectorAll('.buyBtn').forEach(b=>b.onclick=()=>buyLocation(b.dataset.id));
+  return '<div class="note" style="margin:0 0 10px">Locations give you preset rigs instantly. Or buy parts below and assemble custom rigs.</div>'+cards;
 }
+
+function renderPartsSection(key){
+  const sec=STORE_SECTIONS.find(s=>s.key===key); if(!sec) return '';
+  let rows='';
+  sec.items.forEach(it=>{
+    let spec='';
+    if(key==='gpus') spec=it.hash.low+'\u2013'+it.hash.high+' MH/s \u00B7 '+it.watts.low+'\u2013'+it.watts.high+'W';
+    else if(key==='cases'||key==='motherboards') spec=it.slots+'-card';
+    else if(key==='psus'&&it.watts) spec=it.watts+'W';
+    const inCart=CART.find(l=>l.id===it.id);
+    rows+='<div class="partRow"><div class="partInfo"><div class="partName">'+(it.vendor?'<span style="color:var(--textFaint)">'+it.vendor+'</span> ':'')+it.name+'</div>'+
+      (spec?'<div class="partSpec">'+spec+'</div>':'')+'</div>'+
+      '<div class="partPrice">'+(it.price||0)+' BBT</div>'+
+      '<button class="addCart" data-id="'+it.id+'">'+(inCart?'+ ('+inCart.qty+')':'Add')+'</button></div>';
+  });
+  return '<div class="partList">'+rows+'</div>';
+}
+
+function renderCart(){
+  if(!CART.length) return '<div class="cartPanel"><div style="color:var(--textDim);font-size:13px;padding:8px">Cart is empty. Add parts to build a rig.</div></div>';
+  let rows='';
+  CART.forEach(l=>{ const p=partById(l.id);
+    rows+='<div class="cartRow"><span class="cName">'+p.name+' \u00D7'+l.qty+'</span>'+
+      '<span class="cPrice">'+(priceOf(l.id)*l.qty)+' BBT</span>'+
+      '<button class="rmCart" data-id="'+l.id+'">\u2212</button></div>'; });
+  const sub=cartSubtotal(), tax=cartTax(), tot=cartTotal();
+  const afford=tot<=WORLD.chain.player.balance;
+  return '<div class="cartPanel">'+rows+
+    '<div class="cartTot"><span>Subtotal</span><span>'+fmt1(sub)+' BBT</span></div>'+
+    '<div class="cartTot"><span>Sales tax (5%)</span><span>'+fmt1(tax)+' BBT</span></div>'+
+    '<div class="cartTot total"><span>Total</span><span>'+fmt1(tot)+' BBT</span></div>'+
+    '<button id="checkoutBtn" class="checkoutBtn"'+(afford?'':' disabled style="opacity:.4;cursor:not-allowed"')+'>'+(afford?'Checkout \u2192 buy parts':'Not enough BBT')+'</button></div>';
+}
+
+function renderOwned(){
+  // group owned parts by section, with counts; offer Assemble button
+  if(!SLOT.parts.length && !(SLOT.builds||[]).length)
+    return '<div class="note" style="margin:0">No parts owned yet. Buy parts from the categories above, then assemble a rig.</div>';
+  // assembled builds
+  let buildsHtml='';
+  (SLOT.builds||[]).forEach((b,i)=>{
+    const v=validateRig(b);
+    buildsHtml+='<div class="buildCard"><div><div class="partName">'+(b.name||'Custom Rig '+(i+1))+'</div>'+
+      '<div class="partSpec">'+(b.gpus?b.gpus.length:0)+' GPUs \u00B7 '+(v.valid?'<span style="color:var(--phosphor)">ready \u2713</span>':'<span style="color:var(--amber)">incomplete</span>')+'</div></div>'+
+      '<div class="partSpec" style="text-align:right">'+(b.locId?'placed: '+LOCATIONS[b.locId].name:'not placed')+'</div></div>';
+  });
+  // grouped loose parts
+  const groups={};
+  SLOT.parts.forEach(p=>{ groups[p._section]=groups[p._section]||{}; const it=partById(p.id); groups[p._section][p.id]=(groups[p._section][p.id]||{name:it.name,count:0}); groups[p._section][p.id].count++; });
+  let partsHtml='';
+  STORE_SECTIONS.forEach(s=>{ if(!groups[s.key])return; let items='';
+    Object.values(groups[s.key]).forEach(g=>{ items+='<div class="ownRow"><span>'+g.name+'</span><span style="color:var(--phosphor)">\u00D7'+g.count+'</span></div>'; });
+    partsHtml+='<div class="ownGroup"><div class="ownHead">'+s.icon+' '+s.label+'</div>'+items+'</div>';
+  });
+  return '<button id="assembleBtn" class="assembleBtn">\u{1F527} Assemble a rig from parts</button>'+
+    (buildsHtml?'<div class="section">Your builds</div>'+buildsHtml:'')+
+    '<div class="section">Loose parts</div>'+partsHtml;
+}
+
 function buyLocation(id){
   const loc=LOCATIONS[id];
   if(SLOT.locations.includes(id)) return;
   if(!loc.free && WORLD.chain.player.balance<loc.price){ return; }
   if(!loc.free){ WORLD.chain.player.balance-=loc.price; }
   SLOT.locations.push(id);
-  // add the location's rigs (same base config), start them OFFLINE
   const newRigs=makeLocationRigs(id).map(r=>({...r, locId:id}));
   RIGS.push(...newRigs);
-  currentLocId=id; // jump to the new location
+  currentLocId=id;
   setPlayerHashRate(WORLD.chain, networkHashFromRigs());
+  save(); renderRoom(); renderShop();
+}
+
+/* ---- assembly: pick owned parts into a build, validate, place in a location ---- */
+function openAssembly(){
+  // count available (owned, not used in a build) parts per id
+  const used={};
+  (SLOT.builds||[]).forEach(b=>{ ['case','motherboard','cpu','memory','storage','riser','psu'].forEach(k=>{ if(b[k])used[b[k]]=(used[b[k]]||0)+1; }); (b.gpus||[]).forEach(g=>used[g]=(used[g]||0)+1); });
+  const avail={}; SLOT.parts.forEach(p=>{ avail[p.id]=(avail[p.id]||0)+1; });
+  // available = owned - used (by id)
+  const freeOf=id=>(avail[id]||0)-(used[id]||0);
+
+  const build={ case:null, motherboard:null, cpu:null, memory:null, storage:null, riser:null, psu:null, gpus:[] };
+  const SLOTKINDS=[
+    {k:'case', label:'Case / Frame', sections:['cases']},
+    {k:'motherboard', label:'Motherboard', sections:['motherboards']},
+    {k:'cpu', label:'CPU', sections:['cpus']},
+    {k:'memory', label:'Memory', sections:['memory']},
+    {k:'storage', label:'Boot drive (SSD/USB)', sections:['ssd','usb']},
+    {k:'riser', label:'GPU Risers', sections:['risers']},
+    {k:'psu', label:'Power Supply', sections:['psus']},
+  ];
+  function optsFor(sections){ const out=[]; sections.forEach(sk=>{ const sec=STORE_SECTIONS.find(s=>s.key===sk); sec.items.forEach(it=>{ if(freeOf(it.id)>0||true){ const free=freeOf(it.id); if(free>0) out.push({id:it.id,name:it.name,free,slots:it.slots}); } }); }); return out; }
+
+  function draw(){
+    const v=validateRig(build);
+    let html='<div class="sheetHead"><h2>Assemble rig</h2><button class="closeX" id="cxAsm">\u00D7</button></div>';
+    SLOTKINDS.forEach(sk=>{
+      const opts=optsFor(sk.sections);
+      let sel='<select class="asmSel" data-k="'+sk.k+'"><option value="">\u2014 none \u2014</option>';
+      opts.forEach(o=>{ sel+='<option value="'+o.id+'"'+(build[sk.k]===o.id?' selected':'')+'>'+o.name+' ('+o.free+' avail'+(o.slots?', '+o.slots+'-card':'')+')</option>'; });
+      sel+='</select>';
+      html+='<div class="asmRow"><label>'+sk.label+'</label>'+sel+'</div>';
+    });
+    // GPUs: multi-add up to slot cap
+    const cap=v.slots||0;
+    const gpuOpts=optsFor(['gpus']);
+    html+='<div class="asmRow"><label>GPUs ('+build.gpus.length+(cap?'/'+cap:'')+')</label>'+
+      '<select class="asmGpuAdd"><option value="">+ add GPU\u2026</option>'+gpuOpts.map(o=>'<option value="'+o.id+'">'+o.name+' ('+o.free+' avail)</option>').join('')+'</select></div>';
+    if(build.gpus.length){ html+='<div class="asmGpuList">'+build.gpus.map((g,i)=>{ const p=partById(g); return '<span class="asmChip" data-i="'+i+'">'+p.name+' \u2715</span>'; }).join('')+'</div>'; }
+    // validity
+    html+='<div class="asmValid '+(v.valid?'ok':'')+'">'+(v.valid?'\u2713 Valid rig \u2014 ready to place':v.reasons.map(r=>'\u2022 '+r).join('<br>'))+'</div>';
+    // place selector (only owned locations) + assemble button
+    if(v.valid){
+      html+='<div class="asmRow"><label>Place in</label><select id="asmLoc">'+SLOT.locations.map(l=>'<option value="'+l+'">'+LOCATIONS[l].name+'</option>').join('')+'</select></div>';
+      html+='<button id="asmBuild" class="checkoutBtn">Build &amp; place rig</button>';
+    }
+    sheet.innerHTML=html;
+    document.getElementById('cxAsm').onclick=()=>backdrop.classList.remove('open');
+    document.querySelectorAll('.asmSel').forEach(s=>s.onchange=e=>{ build[e.target.dataset.k]=e.target.value||null; draw(); });
+    const ga=document.querySelector('.asmGpuAdd'); if(ga) ga.onchange=e=>{ if(e.target.value){ const cap2=validateRig(build).slots||99; if(build.gpus.length<cap2){ build.gpus.push(e.target.value);} draw(); } };
+    document.querySelectorAll('.asmChip').forEach(c=>c.onclick=()=>{ build.gpus.splice(+c.dataset.i,1); draw(); });
+    const bb=document.getElementById('asmBuild'); if(bb) bb.onclick=()=>{ build.locId=document.getElementById('asmLoc').value; commitBuild(build); };
+  }
+  draw();
+  backdrop.classList.add('open');
+}
+
+function commitBuild(build){
+  // create an assembled rig in the chosen location, mark its parts as used
+  const locId=build.locId;
+  const v=validateRig(build); if(!v.valid) return;
+  // each GPU contributes its hashrate; rig uses normal power by default
+  const rig={ id:'build_'+Date.now(), label:'Custom Rig', gpu:'custom', custom:true,
+    gpus:build.gpus.slice(), count:build.gpus.length, power:'normal',
+    state:'OFFLINE', shares:0, jobId:1, locId,
+    parts:{ case:build.case, motherboard:build.motherboard, cpu:build.cpu, memory:build.memory, storage:build.storage, riser:build.riser, psu:build.psu } };
+  SLOT.builds=SLOT.builds||[]; SLOT.builds.push({...build, name:'Custom Rig', built:true});
+  RIGS.push(rig);
+  setPlayerHashRate(WORLD.chain, networkHashFromRigs());
+  backdrop.classList.remove('open');
+  currentLocId=locId;
   save(); renderRoom(); renderShop();
 }
 
