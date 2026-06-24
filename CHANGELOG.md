@@ -3,6 +3,42 @@
 All notable changes to Rig Runner / *Miner's Life* are tracked here.
 Format loosely follows Keep a Changelog. Dates are YYYY-MM-DD.
 
+## [0.9] — 2026-06-24
+
+A full power/electrical overhaul: POWER is now its own page with a per-location
+one-line diagram, live kilowatt meters, PDUs, and a realistic 3-stage breaker model.
+
+### Added
+- **POWER bottom-nav tab** (moved out of Stats) — a location-aware page driven by a
+  single source of truth (`electrical.js` `POWER_TOPOLOGY`) shared by the room,
+  the rigs, and this page.
+- **Per-location topology**:
+  - **Dorm** — 2× kilowatt meters (C13) on one 20A/120V circuit.
+  - **Garage** — 2× 30A/240V circuits, each feeding a PDU with 6× C19 plugs.
+  - **Mining Shed** — 200A service, 8× 30A/240V → 8 PDUs (4 left + 4 right), each
+    6× C19 (48 plug slots). Left/right side toggle on the page.
+- **3-stage series fault model** — protection trips in realistic order: **PDU
+  breaker → meter breaker → panel fuse**. A tripped stage cuts everything
+  downstream; each **stays tripped until you manually reset it** at that stage.
+- **One-line diagram** — chevron-style power route; lines light **green** when
+  powered and **red** at/after a fault. Tap any node (panel / meter / PDU) to open
+  the matching art.
+- **Live kilowatt meters** — each meter shows its rig's real-time draw as a bright
+  **yellow numeric readout on the LCD**, rounded up to whole watts, aligned to the
+  correct meter screen.
+- **PDU controls** — power switch (on/off powers the rig) and a resettable breaker.
+- **Manual plug assignment** — plug each rig into a specific meter/PDU slot. A rig
+  only mines when it's plugged in, switched on, and not downstream of a trip.
+  (Existing rigs are auto-assigned to free plugs so nothing stops unexpectedly.)
+- **Parasitic loss** (~0.1%) shown on the page (delivered vs. drawn watts).
+
+### Changed
+- Hashrate is now power-gated: unplugged / switched-off / tripped rigs produce no
+  hashrate until power is restored.
+
+### Pending
+- Rig click-areas still to be aligned to the silver miner-shell outline (screenshot).
+
 ## [0.8] — 2026-06-23
 
 Adds the electrical/power system, console share statuses, exchange depth, and

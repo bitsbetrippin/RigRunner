@@ -1,25 +1,27 @@
-# Rig Runner - Miner's Life · v0.8
+# Rig Runner - Miner's Life · v0.9
 
 Browser-based crypto-mining sim. Create an account, pick a miner + occupation,
 earn weekly USD, trade USD<->BBT on the dorm laptop exchange, buy parts, build &
-name rigs, watch your circuits, assign rigs to pools, and mine. Open index.html
+name rigs, wire up your power, assign rigs to pools, and mine. Open index.html
 (or serve: python3 -m http.server 8000).
 
-## New in v0.8
-- Electrical system: Dorm = one 20A/120V circuit, Garage = two 30A/240V, Shack =
-  200A service with 6x30A panels + 6-plug PDUs (36 plugs, ~18 rigs). Soft cap:
-  over-safe warns, over-breaker trips and throttles. Stats > Power, per-room subtabs.
-- Console: stale (~0.1%) + rejected (0.5-1.3%) share statuses.
-- Exchange: 1m/5m/1h/1d/1w candle toggles, right-side price axis, live order book.
-- GPU-typed miner software (NVIDIA T-Rex / AMD TeamRedMiner) themes the console.
+## New in v0.9 - Power overhaul
+- POWER is its own tab: a per-location one-line diagram (chevron route, green=on,
+  red=tripped) you can tap into the fuse box, kilowatt meter, and PDU art.
+- Topology (single source of truth in engine/electrical.js):
+  - Dorm: 2x kilowatt meters (C13) on one 20A/120V circuit.
+  - Garage: 2x 30A/240V -> 2 PDUs, 6x C19 each.
+  - Shed: 200A service, 8x 30A/240V -> 8 PDUs (4 left + 4 right), 6x C19 each (48 plugs).
+- 3-stage series breakers trip in order PDU -> meter -> panel; stay tripped until
+  you manually reset that stage. Live kilowatt meters show real-time watts in
+  bright yellow on the LCD (rounded up). PDU power switch + breaker per rig.
+- Manual plug assignment: a rig only mines when plugged in, switched on, and not
+  downstream of a trip. Parasitic loss ~0.1% shown.
 
 ## Core loop
-Occupation pays weekly USD (week 1 full, then 15%/wk). Convert USD->BBT on the
-laptop exchange. Buy parts (49 GPUs + components), assemble rigs (case + matching
-mobo 6/8/12/19 + CPU + memory + boot drive + risers + PSU + >=2 GPUs), place in
-owned locations within their circuit limits. Solo or pool mining; ~381 GH/s
-network, 8 pools, 10s blocks, ~4yr halving, 5 BBT reward.
-
-## Data (CSV-editable)
-docs/occupations.csv, docs/parts_pricing.csv. Fee tiers/volatility in
-engine/market.js; circuit layouts in engine/electrical.js. A game, not financial software.
+Occupation pays weekly USD. Convert USD->BBT on the laptop exchange. Buy parts
+(49 GPUs + components), assemble rigs (case + matching mobo 6/8/12/19 + CPU +
+memory + boot drive + risers + PSU + >=2 GPUs), place + plug them in within
+circuit limits. Solo or pool mining; ~381 GH/s network, 8 pools, 10s blocks,
+~4yr halving, 5 BBT reward. CSV-editable salaries/prices in docs/.
+A game, not financial software.

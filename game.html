@@ -275,11 +275,55 @@
   .pdHash{color:var(--phosphor);font-family:var(--mono);font-size:12px}
   .pdMeta{color:var(--textDim);font-size:11px;margin-top:3px}
   .pdRigs{margin-top:8px}
+
+  /* power page (v0.9) */
+  .pwrTabs{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 10px}
+  .pwrTab{padding:8px 12px;border-radius:8px;border:1px solid var(--grid);background:var(--panel);color:var(--textDim);font-size:12px;cursor:pointer}
+  .pwrTab.on{border-color:var(--phosphor);background:var(--phosphorDim);color:var(--void);font-weight:700}
+  .pwrSummary{background:var(--panel);border:1px solid var(--grid);border-radius:12px;padding:13px;margin-bottom:10px}
+  .pwrSumMain .l{color:var(--textDim);font-size:12px}
+  .pwrSumMain .v{font-size:22px;font-weight:800;margin:3px 0}
+  .pwrSumMain .s{font-size:11px;color:var(--textDim)}
+  .pwrSideSel{display:flex;gap:6px;margin:10px 0}
+  .pwrSide{flex:1;padding:9px;border-radius:8px;border:1px solid var(--grid);background:var(--panel);color:var(--textDim);font-size:12px;cursor:pointer}
+  .pwrSide.on{border-color:var(--phosphor);background:var(--phosphorDim);color:var(--void);font-weight:700}
+  /* one-line diagram */
+  .oneLine{background:var(--panel);border:1px solid var(--grid);border-radius:12px;padding:12px;overflow-x:auto}
+  .olRow{display:flex;align-items:center;gap:4px;min-width:max-content}
+  .olNode{background:var(--panelHi);border:1px solid var(--grid);border-radius:8px;padding:8px 6px;text-align:center;cursor:pointer;position:relative;min-width:52px}
+  .olNode.panel{border-color:var(--phosphor);min-width:62px}
+  .olNode.small{min-width:46px;padding:6px 4px}
+  .olNode.bad{border-color:var(--ember);background:#3a1414}
+  .olNode.dead{opacity:0.45}
+  .olIcon{font-size:16px}
+  .olName{font-size:9px;color:var(--textDim);line-height:1.2;margin-top:2px}
+  .olChev{font-size:20px;font-weight:800;padding:0 2px}
+  .olChev.ok{color:var(--phosphor)} .olChev.bad{color:var(--ember)}
+  .olCircuits{display:flex;flex-direction:column;gap:8px}
+  .olBranch{display:flex;align-items:center}
+  .olSeg{width:16px;height:3px;border-radius:2px;flex:none}
+  .olSeg.ok{background:var(--phosphor)} .olSeg.dead{background:var(--ember);opacity:.5} .olSeg.bad{background:var(--ember)}
+  /* the bright yellow live watt readout on a meter node */
+  .olWatt{position:absolute;top:-7px;left:50%;transform:translateX(-50%);background:#1a1a0a;border:1px solid #6b6b00;color:#ffe000;font-family:var(--mono);font-size:9px;font-weight:700;padding:1px 4px;border-radius:3px;text-shadow:0 0 4px rgba(255,224,0,0.6);white-space:nowrap}
+  .circRow{background:var(--panel);border:1px solid var(--grid);border-radius:10px;padding:11px;margin-bottom:8px}
+  .circHead{display:flex;justify-content:space-between;font-size:12px;margin-bottom:6px}
+  .circBar{height:7px;background:var(--panelHi);border-radius:4px;overflow:hidden}
+  .circFill{height:100%;border-radius:4px;transition:width .3s}
+  .tripRow{display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:12px}
+  .resetBtn{background:var(--ember);color:#fff;border:none;border-radius:7px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer}
+  .plugGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;margin-top:9px}
+  .plugSlot{display:flex;align-items:center;gap:5px;background:var(--panelHi);border:1px solid var(--grid);border-radius:7px;padding:5px 7px}
+  .plugAssignSel{flex:1;min-width:0;background:var(--void);color:var(--text);border:1px solid var(--grid);border-radius:5px;padding:5px;font-size:11px;font-family:var(--mono)}
+  .plugW{color:#ffe000;font-family:var(--mono);font-size:11px;font-weight:700;white-space:nowrap}
+  .pduPowerBtn{border:none;border-radius:5px;padding:5px 8px;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap}
+  .pduPowerBtn.on{background:var(--phosphor);color:var(--void)} .pduPowerBtn.off{background:var(--grid);color:var(--textDim)}
+  .artWrap{position:relative;margin-bottom:8px}
+  .meterOverlay{position:absolute;transform:translate(-50%,-50%);color:#ffe000;font-family:var(--mono);font-weight:700;font-size:clamp(13px,3.5vw,24px);text-shadow:0 0 8px rgba(255,224,0,0.85);letter-spacing:1px}
 </style>
 </head>
 <body>
 <header>
-  <div class="brand">RIG RUNNER &middot; DORM 1 <span class="ver">v0.8</span></div>
+  <div class="brand">RIG RUNNER &middot; DORM 1 <span class="ver">v0.9</span></div>
   <div class="hud">
     <span class="coin" id="hudUsd" style="color:var(--phosphor)">$0</span>
     <span class="coin" id="hudCoin">&#9923; 0 BBT</span>
@@ -297,6 +341,7 @@
 <div class="view" id="view-dash"></div>
 <div class="view" id="view-explore"></div>
 <div class="view" id="view-stats"></div>
+<div class="view" id="view-power"></div>
 <div class="view" id="view-shop"></div>
 <div class="view" id="view-settings"></div>
 
@@ -333,6 +378,7 @@
   <button data-tab="dash"><span class="ic">&#128225;</span>NODE</button>
   <button data-tab="explore"><span class="ic">&#129513;</span>EXPLORER</button>
   <button data-tab="stats"><span class="ic">&#128202;</span>STATS</button>
+  <button data-tab="power"><span class="ic">&#9889;</span>POWER</button>
   <button data-tab="shop"><span class="ic">&#127970;</span>SHOP</button>
   <button data-tab="settings"><span class="ic">&#9881;</span>SETTINGS</button>
 </div>
@@ -400,16 +446,30 @@ function totalDrawW(){ return RIGS.reduce((s,r)=>s+rigDrawW(r),0); }
 function totalBtu(){ return wattsToBtu(totalDrawW()); }
 function rigsInLocation(locId){ return RIGS.filter(r=>r.locId===locId); }
 
-/* Soft-cap throttle: rigs on a tripped breaker produce no hashrate (power cut).
-   Recomputed lazily; returns a Set of throttled rig ids. */
-let _throttled=new Set(); let _throttleStamp=0;
+/* Power gating: a rig produces hashrate only if it's plugged into a slot, its PDU
+   power switch is on, and no breaker upstream of it (PDU -> meter -> panel) is
+   tripped. Recomputed lazily into a Set of throttled rig ids. */
+let _throttled=new Set();
 function refreshThrottle(){
   _throttled=new Set();
-  const byLoc={};
-  RIGS.forEach(r=>{ (byLoc[r.locId]=byLoc[r.locId]||[]).push(r); });
-  Object.keys(byLoc).forEach(locId=>{
-    const pw=locationPower(locId, byLoc[locId], r=>rigWattsTotal(r));
-    if(pw) pw.circuits.forEach(c=>{ if(c.tripped) c.rigs.forEach(r=>_throttled.add(r.id)); });
+  const owned=SLOT.locations||['dorm'];
+  const assign=SLOT.plugAssign||{};
+  owned.forEach(locId=>{
+    const locRigs=rigsInLocation(locId);
+    const rigInputs=locRigs.map(r=>({ id:r.id, watts:Math.ceil(rigWattsTotal(r)), on:r.powerOn!==false }));
+    let trips=new Set((SLOT.trips&&SLOT.trips[locId])||[]);
+    trips=evaluateTrips(locId, rigInputs, assign, trips);
+    if(SLOT.trips) SLOT.trips[locId]=[...trips];
+    const pw=computePower(locId, rigInputs, assign, trips);
+    if(!pw) return;
+    // build set of rigs that ARE delivering power (assigned + on + not cut by a trip)
+    const powered=new Set();
+    pw.circuits.forEach(c=>{
+      if(c.pdu){ c.plugs.forEach(p=>{ if(p.rig && p.watts>0) powered.add(p.rig.id); }); }
+      else { c.meters.forEach(m=>{ if(m.rig && m.watts>0) powered.add(m.rig.id); }); }
+    });
+    // any rig in this location NOT in `powered` is throttled (unplugged/off/tripped)
+    locRigs.forEach(r=>{ if(!powered.has(r.id)) _throttled.add(r.id); });
   });
 }
 function rigThrottled(r){ return _throttled.has(r.id); }
@@ -521,6 +581,9 @@ function enterSlot(n){
   if(SLOT.lastPayMs===undefined) SLOT.lastPayMs=Date.now();
   if(SLOT.tradeVolume===undefined) SLOT.tradeVolume=0;
   if(!SLOT.orders) SLOT.orders=[];
+  if(!SLOT.plugAssign) SLOT.plugAssign={};   // { rigId: slotId } manual plug assignment
+  if(!SLOT.trips) SLOT.trips={};              // { locId: [tripStageIds] }
+  autoAssignPlugs();                          // give any unplugged rig a default slot
   if(!CART) CART=[];
   processSalary(); // catch up any weekly paydays owed
   RIGS = (SLOT.rigs||[]).map(r=>({ ...r }));
@@ -588,6 +651,7 @@ function nextPaydayMs(){ return (SLOT.lastPayMs||Date.now())+MS_PER_WEEK; }
 function tick(){
   if(activeSlotN===null) return; // not in a slot yet
   const now=Date.now();
+  refreshThrottle();             // power gating: unplugged/off/tripped rigs make no hash
   setPlayerHashRate(WORLD.chain, networkHashFromRigs());
 
   // accrue this slot's power by real elapsed time
@@ -1364,38 +1428,203 @@ function renderStats(){
     <div class="stat"><div class="l">Accrued This Cycle</div>
       <div class="v" style="color:var(--ember)">${money(APP.econ.kwhUsed*APP.settings.costPerKwh)}</div>
       <div class="s">${APP.econ.kwhUsed.toFixed(1)} kWh @ $${APP.settings.costPerKwh}/kWh \u00B7 due after 30 days</div></div>
-    <div class="section">Power &amp; electrical \u00b7 the meter at the wall</div>
-    <div id="pwrSub"></div>
-    <div id="pwrDetail"></div>
-    <div class="note">Anchored to late-2015 Ethereum scale: a 6-card rig is ~0.044% of a ~381 GH/s network.
-      Luck = actual vs. expected block wins. Token: <b>BBT</b>.</div>`;
-  renderPowerPanel();
+    <div class="note">Full electrical detail \u2014 one-line diagram, meters, PDUs, and breaker resets \u2014 lives on the <b>POWER</b> tab. Token: <b>BBT</b>.</div>`;
 }
 
-/* ---- Power & electrical panel with per-room subtabs ---- */
-let pwrRoom=null;
-function renderPowerPanel(){
+/* ============================================================
+   POWER PAGE (v0.9) — per-location one-line diagram + meters/PDUs
+   ============================================================ */
+let pwrRoom=null, pwrSide='left', pwrArtOpen=null;
+
+/* Give any rig without a plug assignment the next free slot in its location.
+   Keeps existing/new rigs mining without forcing a manual step (player can still
+   re-plug manually on the Power page). */
+function autoAssignPlugs(){
+  const assign=SLOT.plugAssign||{};
+  const owned=SLOT.locations||['dorm'];
+  const taken=new Set(Object.values(assign));
+  owned.forEach(locId=>{
+    const top=POWER_TOPOLOGY[locId]; if(!top) return;
+    // build ordered list of all slot ids in this location
+    const slots=[];
+    top.circuits.forEach(c=>{
+      if(c.pdu){ for(let p=0;p<c.pdu.plugs;p++) slots.push(c.pdu.id+':p'+p); }
+      else (c.meters||[]).forEach(m=>slots.push(m.id));
+    });
+    const locRigs=rigsInLocation(locId);
+    locRigs.forEach(r=>{
+      if(assign[r.id]) return; // already plugged
+      const free=slots.find(s=>!taken.has(s));
+      if(free){ assign[r.id]=free; taken.add(free); }
+    });
+  });
+  SLOT.plugAssign=assign;
+}
+
+/* live power state for the active power room, with trips evaluated */
+function powerState(locId){
+  const rigs=rigsInLocation(locId).map(r=>({ id:r.id, watts:Math.ceil(rigWattsTotal(r)), on:r.powerOn!==false && r.state!=='OFFLINE', rig:r }));
+  const assign=SLOT.plugAssign||{};
+  let trips=new Set(SLOT.trips[locId]||[]);
+  trips=evaluateTrips(locId, rigs, assign, trips);          // add any new auto-trips
+  SLOT.trips[locId]=[...trips];                              // persist
+  const pw=computePower(locId, rigs, assign, trips);
+  return { pw, rigs, assign, trips };
+}
+/* apply throttle: rigs whose delivered watts are 0 due to a trip produce no hash.
+   (Handled by refreshThrottle/_throttled — see the power-gating section.) */
+
+function renderPower(){
   const owned=SLOT.locations||['dorm'];
   if(!pwrRoom || !owned.includes(pwrRoom)) pwrRoom=owned[0];
-  const sub=document.getElementById('pwrSub'); if(!sub) return;
-  sub.innerHTML='<div class="pwrTabs">'+owned.map(l=>'<button class="pwrTab'+(l===pwrRoom?' on':'')+'" data-l="'+l+'">'+LOCATIONS[l].name+'</button>').join('')+'</div>';
-  sub.querySelectorAll('.pwrTab').forEach(b=>b.onclick=()=>{ pwrRoom=b.dataset.l; renderPowerPanel(); });
-  const det=document.getElementById('pwrDetail'); if(!det) return;
-  const rigs=rigsInLocation(pwrRoom);
-  const pw=locationPower(pwrRoom, rigs, r=>rigDrawW(r)||rigWattsTotal(r));
-  if(!pw){ det.innerHTML='<div class="note" style="margin:0">No electrical data.</div>'; return; }
-  let circuits='';
-  pw.circuits.forEach(c=>{
-    const pctLoad=Math.min(100, c.loadPct*100);
-    const barCol=c.tripped?'var(--ember)':c.overSafe?'var(--amber)':'var(--phosphor)';
-    const status=c.tripped?'<span style="color:var(--ember)">\u26a0 BREAKER TRIPPED</span>':c.overSafe?'<span style="color:var(--amber)">\u26a0 over safe load</span>':'<span style="color:var(--phosphor)">ok</span>';
-    circuits+='<div class="circRow"><div class="circHead"><span>'+c.name+' \u00b7 '+c.amps+'A/'+c.volts+'V</span>'+status+'</div>'+
-      '<div class="circMeta">'+fmt(c.watts)+'W \u00b7 '+c.amps_draw.toFixed(1)+'A draw \u00b7 plugs '+c.plugsUsed+'/'+c.plugs+' \u00b7 safe '+fmt(c.capacityW)+'W</div>'+
-      '<div class="circBar"><div class="circFill" style="width:'+pctLoad.toFixed(0)+'%;background:'+barCol+'"></div></div></div>';
+  const { pw, trips }=powerState(pwrRoom);
+  const top=POWER_TOPOLOGY[pwrRoom];
+  // room subtabs
+  let tabs='<div class="pwrTabs">'+owned.map(l=>'<button class="pwrTab'+(l===pwrRoom?' on':'')+'" data-l="'+l+'">'+LOCATIONS[l].name+'</button>').join('')+'</div>';
+  // summary
+  const anyTrip=trips.size>0;
+  const summary='<div class="pwrSummary"><div class="pwrSumMain"><div class="l">'+top.name+' \u00b7 '+top.panel.label+'</div>'+
+    '<div class="v">'+fmt(Math.ceil(pw.totalW))+' W <span style="font-size:12px;color:var(--textDim)">delivered '+fmt(Math.ceil(pw.deliveredW))+' W</span></div>'+
+    '<div class="s">parasitic loss '+pw.parasiticW.toFixed(1)+' W (~0.1%) \u00b7 '+pw.plugCount+' plug slots'+
+    (anyTrip?' \u00b7 <span style="color:var(--ember)">\u26a0 '+trips.size+' breaker'+(trips.size>1?'s':'')+' tripped</span>':' \u00b7 <span style="color:var(--phosphor)">all circuits nominal</span>')+'</div></div></div>';
+  // one-line diagram
+  const diagram=renderOneLine(pwrRoom, pw, trips);
+  // side toggle for shed
+  let sideSel='';
+  if(top.sides){ sideSel='<div class="pwrSideSel"><button class="pwrSide'+(pwrSide==='left'?' on':'')+'" data-side="left">Left side</button><button class="pwrSide'+(pwrSide==='right'?' on':'')+'" data-side="right">Right side</button></div>'; }
+  // circuit/plug assignment list
+  const assignUI=renderPowerCircuits(pwrRoom, pw, trips);
+
+  document.getElementById('view-power').innerHTML=
+    '<header style="padding:6px 0 2px"><h2 style="font-size:24px;font-weight:800">Power</h2></header>'+
+    tabs+summary+
+    '<div class="section">One-line diagram \u00b7 tap a node for detail</div>'+diagram+
+    '<div class="note" style="margin:6px 0">Series protection: <b>PDU breaker</b> \u2192 <b>meter breaker</b> \u2192 <b>panel fuse</b>. Green = powered, red = tripped/after a fault. Resets are manual at each stage.</div>'+
+    sideSel+
+    '<div class="section">Circuits &amp; plugs</div>'+assignUI;
+
+  document.querySelectorAll('.pwrTab').forEach(b=>b.onclick=()=>{ pwrRoom=b.dataset.l; pwrSide='left'; renderPower(); });
+  document.querySelectorAll('.pwrSide').forEach(b=>b.onclick=()=>{ pwrSide=b.dataset.side; renderPower(); });
+  document.querySelectorAll('.olNode').forEach(n=>n.onclick=()=>openPowerArt(pwrRoom, n.dataset.kind, n.dataset.id));
+  document.querySelectorAll('.resetBtn').forEach(b=>b.onclick=()=>{ const ts=new Set(SLOT.trips[pwrRoom]||[]); ts.delete(b.dataset.id); SLOT.trips[pwrRoom]=[...ts]; save(); renderPower(); });
+  document.querySelectorAll('.plugAssignSel').forEach(s=>s.onchange=()=>{ assignRigToSlot(s.dataset.slot, s.value); });
+  document.querySelectorAll('.pduPowerBtn').forEach(b=>b.onclick=()=>{ toggleRigPower(b.dataset.rig); });
+}
+
+/* one-line diagram: PANEL -> [per circuit: FUSE -> METER -> PDU -> rigs] */
+function renderOneLine(locId, pw, trips){
+  const top=POWER_TOPOLOGY[locId];
+  const panelBad=pw.panel.tripped;
+  let html='<div class="oneLine">';
+  // service panel node
+  html+='<div class="olRow"><div class="olNode panel'+(panelBad?' bad':'')+'" data-kind="panel" data-id="'+top.panel.id+'">'+
+    '<div class="olIcon">\u26a1</div><div class="olName">SERVICE<br>'+top.panel.amps+'A</div></div>';
+  // chevrons fan out to circuits
+  const circuits = top.sides ? pw.circuits.filter(c=>c.side===pwrSide) : pw.circuits;
+  html+='<div class="olChev '+(panelBad?'bad':'ok')+'">\u00bb</div><div class="olCircuits">';
+  circuits.forEach(c=>{
+    const fuseBad=trips.has(c.panelFuse);
+    const meter=c.meters[0];
+    const meterBad=meter?trips.has(meter.id):false;
+    const pduBad=c.pdu?trips.has(c.pdu.id):false;
+    // line health: a downstream node is "dead" if itself or anything upstream tripped
+    const upPanel=panelBad, upFuse=upPanel||fuseBad, upMeter=upFuse||meterBad, upPdu=upMeter||pduBad;
+    html+='<div class="olBranch">';
+    // fuse
+    html+=seg(upFuse,fuseBad)+'<div class="olNode small'+(fuseBad?' bad':upFuse?' dead':'')+'" data-kind="panel" data-id="'+top.panel.id+'"><div class="olName">'+(c.pdu?'30A':c.amps+'A')+'<br>fuse</div></div>';
+    // meter
+    if(meter){ html+=seg(upMeter,meterBad)+'<div class="olNode small'+(meterBad?' bad':upMeter?' dead':'')+'" data-kind="meter" data-id="'+meter.id+'"><div class="olName">kWh<br>meter</div>'+meterWattTag(meter, upMeter)+'</div>'; }
+    // pdu
+    if(c.pdu){ html+=seg(upPdu,pduBad)+'<div class="olNode small'+(pduBad?' bad':upPdu?' dead':'')+'" data-kind="pdu" data-id="'+c.pdu.id+'"><div class="olName">PDU<br>'+c.pdu.plugs+'\u00d7C19</div></div>'; }
+    html+='</div>';
   });
-  det.innerHTML='<div class="stat" style="margin-bottom:8px"><div class="l">'+LOCATIONS[pwrRoom].name+' \u00b7 '+pw.service+'</div>'+
-    '<div class="v" style="font-size:18px">'+fmt(pw.totalW)+' W <span style="font-size:12px;color:var(--textDim)">across '+pw.circuits.length+' circuit'+(pw.circuits.length>1?'s':'')+'</span></div>'+
-    '<div class="s">plugs '+pw.usedPlugs+'/'+pw.totalPlugs+' used'+(pw.anyTripped?' \u00b7 <span style="color:var(--ember)">breaker tripped \u2014 rigs throttled</span>':pw.anyOverSafe?' \u00b7 <span style="color:var(--amber)">over safe load</span>':'')+'</div></div>'+circuits;
+  html+='</div></div></div>';
+  return html;
+}
+function seg(dead,bad){ return '<div class="olSeg '+(bad?'bad':dead?'dead':'ok')+'"></div>'; }
+function meterWattTag(meter, dead){ const w=dead?0:Math.ceil(meter.watts); return '<div class="olWatt">'+w+'W</div>'; }
+
+/* circuits + plug assignment + breaker reset UI */
+function renderPowerCircuits(locId, pw, trips){
+  const top=POWER_TOPOLOGY[locId];
+  const circuits = top.sides ? pw.circuits.filter(c=>c.side===pwrSide) : pw.circuits;
+  const myRigs=rigsInLocation(locId);
+  let html='';
+  circuits.forEach(c=>{
+    const meter=c.meters[0];
+    const meterBad=meter?trips.has(meter.id):false;
+    const pduBad=c.pdu?trips.has(c.pdu.id):false;
+    const fuseBad=trips.has(c.panelFuse);
+    const loadPct=Math.min(100,(c.rawWatts/c.maxW)*100);
+    const barCol=(c.tripped||pduBad||meterBad)?'var(--ember)':c.overSafe?'var(--amber)':'var(--phosphor)';
+    html+='<div class="circRow"><div class="circHead"><span>'+(c.pdu?c.pdu.id.toUpperCase().replace(/-/g,' '):'Circuit '+c.id)+' \u00b7 '+c.amps+'A/'+c.volts+'V</span>'+
+      '<span>'+fmt(Math.ceil(c.watts))+'W \u00b7 '+c.ampsDraw.toFixed(1)+'A</span></div>'+
+      '<div class="circBar"><div class="circFill" style="width:'+loadPct.toFixed(0)+'%;background:'+barCol+'"></div></div>';
+    // trip + reset rows for each stage that's tripped
+    if(fuseBad) html+=tripRow('Panel fuse tripped', top.panel.id);
+    if(meterBad) html+=tripRow('Meter breaker tripped', meter.id);
+    if(pduBad) html+=tripRow('PDU breaker tripped', c.pdu.id);
+    // plug slots
+    if(c.pdu){
+      html+='<div class="plugGrid">';
+      c.plugs.forEach((p,i)=>{ const slot=c.pdu.id+':p'+i; html+=plugSlot(slot, p.rig, myRigs, locId, p.watts); });
+      html+='</div>';
+    } else if(meter){
+      html+='<div class="plugGrid">'+plugSlot(meter.id, meter.rig, myRigs, locId, meter.watts)+'</div>';
+    }
+    html+='</div>';
+  });
+  return html||'<div class="note" style="margin:0">No circuits on this side.</div>';
+}
+function tripRow(label, id){ return '<div class="tripRow"><span style="color:var(--ember)">\u26a0 '+label+'</span><button class="resetBtn" data-id="'+id+'">Reset</button></div>'; }
+function plugSlot(slot, rig, myRigs, locId, watts){
+  // dropdown of unassigned rigs (+ currently assigned) for this slot
+  const assigned=SLOT.plugAssign||{};
+  const usedRigIds=new Set(Object.keys(assigned).filter(rid=>assigned[rid]&&assigned[rid]!==slot));
+  let opts='<option value="">\u2014 empty \u2014</option>';
+  myRigs.forEach(r=>{ if(usedRigIds.has(r.id)) return; const sel=rig&&rig.id===r.id?' selected':''; opts+='<option value="'+r.id+'"'+sel+'>'+(r.name||r.label)+'</option>'; });
+  const on = rig ? (rig.on!==false) : false;
+  const pwrBtn = rig ? '<button class="pduPowerBtn '+(on?'on':'off')+'" data-rig="'+rig.id+'">'+(on?'\u23fb ON':'\u23fb OFF')+'</button>' : '';
+  return '<div class="plugSlot"><select class="plugAssignSel" data-slot="'+slot+'">'+opts+'</select>'+
+    (rig?'<span class="plugW">'+Math.ceil(watts)+'W</span>':'')+pwrBtn+'</div>';
+}
+function assignRigToSlot(slot, rigId){
+  const a=SLOT.plugAssign||{};
+  // clear any rig currently in this slot
+  Object.keys(a).forEach(rid=>{ if(a[rid]===slot) delete a[rid]; });
+  if(rigId) a[rigId]=slot;
+  SLOT.plugAssign=a; save(); renderPower();
+}
+function toggleRigPower(rigId){
+  const r=RIGS.find(x=>x.id===rigId); if(!r) return;
+  r.powerOn = r.powerOn===false ? true : false;
+  save(); renderPower();
+}
+/* art viewer: meter/pdu/panel image with live yellow watt overlay on meters */
+function openPowerArt(locId, kind, id){
+  const top=POWER_TOPOLOGY[locId];
+  const { pw, trips }=powerState(locId);
+  let art='', title='', overlay='';
+  if(kind==='panel'){ art=top.panel.art; title=top.panel.label; }
+  else if(kind==='meter'){
+    let meter=null, mi=0; pw.circuits.forEach(c=>c.meters.forEach(m=>{ if(m.id===id){ meter=m; mi=m.meteridx||0; } }));
+    art=meter?meter.art:top.meterArt; title='Kilowatt Meter';
+    const dead=meter?(trips.has(meter.id)||meter.tripped):false;
+    const w=meter?(dead?0:Math.ceil(meter.watts)):0;
+    // dorm art shows 2 meters side-by-side; garage/shed art is a single meter centered.
+    const multi=(locId==='dorm');
+    const leftPct = multi ? (mi===0?38:62) : 50;
+    const topPct = multi ? 32 : 28;
+    overlay='<div class="meterOverlay" style="left:'+leftPct+'%;top:'+topPct+'%">'+w+' W</div>';
+  } else if(kind==='pdu'){
+    let pdu=null; pw.circuits.forEach(c=>{ if(c.pdu&&c.pdu.id===id) pdu=c.pdu; });
+    art=pdu?pdu.art:'assets/miningshed-pdu.png'; title='PDU \u00b7 240V 30A';
+  }
+  sheet.innerHTML='<div class="sheetHead"><div><h2>'+title+'</h2></div><button class="closeX" id="cxArt">\u00d7</button></div>'+
+    '<div class="artWrap"><img src="'+art+'" style="width:100%;display:block;border-radius:8px"/>'+overlay+'</div>'+
+    '<div class="note">'+(kind==='meter'?'Live draw shown in yellow on the meter display, rounded up to whole watts.':kind==='pdu'?'PDU breaker + power switch control the rigs plugged into it.':'Service panel fuses feed each circuit.')+'</div>';
+  document.getElementById('cxArt').onclick=()=>backdrop.classList.remove('open');
+  backdrop.classList.add('open');
 }
 
 /* ---- settings ---- */
@@ -1574,7 +1803,7 @@ function buyLocation(id){
   if(!loc.free){ WORLD.chain.player.balance-=loc.price; }
   SLOT.locations.push(id);
   const newRigs=makeLocationRigs(id).map(r=>({...r, locId:id}));
-  RIGS.push(...newRigs);
+  RIGS.push(...newRigs); autoAssignPlugs();
   currentLocId=id;
   setPlayerHashRate(WORLD.chain, networkHashFromRigs());
   save(); renderRoom(); renderShop();
@@ -1647,7 +1876,7 @@ function commitBuild(build){
     state:'OFFLINE', shares:0, jobId:1, locId,
     parts:{ case:build.case, motherboard:build.motherboard, cpu:build.cpu, memory:build.memory, storage:build.storage, riser:build.riser, psu:build.psu } };
   SLOT.builds=SLOT.builds||[]; SLOT.builds.push({...build, name:defaultName, built:true});
-  RIGS.push(rig);
+  RIGS.push(rig); autoAssignPlugs();
   setPlayerHashRate(WORLD.chain, networkHashFromRigs());
   backdrop.classList.remove('open');
   currentLocId=locId;
@@ -1750,6 +1979,7 @@ function render(){
   if(activeTab==='dash') renderDash();
   else if(activeTab==='explore') renderExplore();
   else if(activeTab==='stats') renderStats();
+  else if(activeTab==='power') renderPower();
   else if(activeTab==='shop') renderShop();
   else if(activeTab==='settings') renderSettings();
 }
