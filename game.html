@@ -323,7 +323,7 @@
 </head>
 <body>
 <header>
-  <div class="brand">RIG RUNNER &middot; DORM 1 <span class="ver">v0.9</span></div>
+  <div class="brand">RIG RUNNER &middot; DORM 1 <span class="ver">v0.9.1</span></div>
   <div class="hud">
     <span class="coin" id="hudUsd" style="color:var(--phosphor)">$0</span>
     <span class="coin" id="hudCoin">&#9923; 0 BBT</span>
@@ -675,6 +675,10 @@ setInterval(tick, 1000); // render once a second; chain cadence is time-driven, 
 const fmt=n=>Math.round(n).toLocaleString();
 const fmt1=n=>n.toFixed(1);
 const fmt2=n=>n.toFixed(2);
+/* currency formatters: BBT shows 3 decimals (fractional tokens matter),
+   USD shows 2 decimals (cents). Thousands separators included. */
+const fmtBBT=n=>(Number(n)||0).toLocaleString(undefined,{minimumFractionDigits:3,maximumFractionDigits:3});
+const fmtUSD=n=>(Number(n)||0).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
 
 /* ============================================================
    EXCHANGE (v0.6): USD <-> BBT, reflects sim price (no market impact)
@@ -767,8 +771,8 @@ function exRender(){
   const f=exMode==='maker'?tier.maker:tier.taker;
   sheet.innerHTML=
     '<div class="sheetHead"><div><h2>Exchange</h2><div class="sub">USD / BBT \u00b7 1m candles</div></div><button class="closeX" id="cxEx">\u00d7</button></div>'+
-    '<div class="exWallets"><div class="exW"><div class="l">USD</div><div class="v" style="color:var(--phosphor)">$'+fmt1(SLOT.usd||0)+'</div></div>'+
-    '<div class="exW"><div class="l">BBT</div><div class="v" style="color:var(--coin)">'+fmt1(WORLD.chain.player.balance)+'</div></div>'+
+    '<div class="exWallets"><div class="exW"><div class="l">USD</div><div class="v" style="color:var(--phosphor)">$'+fmtUSD(SLOT.usd||0)+'</div></div>'+
+    '<div class="exW"><div class="l">BBT</div><div class="v" style="color:var(--coin)">'+fmtBBT(WORLD.chain.player.balance)+'</div></div>'+
     '<div class="exW"><div class="l">Price</div><div class="v" style="color:'+(chg>=0?'var(--phosphor)':'var(--ember)')+'">$'+fmt2(px)+'</div><div style="font-size:10px;color:'+(chg>=0?'var(--phosphor)':'var(--ember)')+'">'+(chg>=0?'+':'')+chg.toFixed(2)+'% 1h</div></div></div>'+
     (inEvent?'<div class="exEvent">\u26a1 High volatility event in progress</div>':'')+
     '<div class="exIv">'+ivBtns+'</div>'+
@@ -842,7 +846,7 @@ function execTrade(a){
     const bbt=(a-a*f)/px;
     SLOT.usd-=a; WORLD.chain.player.balance+=bbt; SLOT.tradeVolume=(SLOT.tradeVolume||0)+a;
   } else {
-    if(a>WORLD.chain.player.balance){ alert('Not enough BBT. You have '+fmt1(WORLD.chain.player.balance)); return; }
+    if(a>WORLD.chain.player.balance){ alert('Not enough BBT. You have '+fmtBBT(WORLD.chain.player.balance)); return; }
     const usdGross=a*px; const net=usdGross-usdGross*f;
     WORLD.chain.player.balance-=a; SLOT.usd=(SLOT.usd||0)+net; SLOT.tradeVolume=(SLOT.tradeVolume||0)+usdGross;
   }
@@ -1669,8 +1673,8 @@ function removeFromCart(id){ const i=CART.findIndex(l=>l.id===id); if(i>=0){ if(
 
 function checkout(){
   const total=cartTotal();
-  if(total>WORLD.chain.player.balance){ alert('Not enough BBT. Total '+total.toFixed(1)+' BBT, you have '+fmt1(WORLD.chain.player.balance)+'.'); return; }
-  WORLD.chain.player.balance-=total;
+  if(total>(SLOT.usd||0)){ alert('Not enough USD. Total $'+fmtUSD(total)+', you have $'+fmtUSD(SLOT.usd||0)+'.'); return; }
+  SLOT.usd-=total;
   // add each purchased unit to Parts Owned as an individual object
   let uid=Date.now();
   CART.forEach(line=>{ for(let i=0;i<line.qty;i++){ SLOT.parts.push({ uid:'p'+(uid++), id:line.id, _section:line._section }); } });
@@ -1679,7 +1683,7 @@ function checkout(){
 }
 
 function renderShop(){
-  const bal=WORLD.chain.player.balance;
+  const bal=SLOT.usd||0;
   // left-side vertical category nav
   let nav='<button class="shopNav'+(storeTab==='locations'?' on':'')+'" data-st="locations">\u{1F3E0} Locations</button>';
   STORE_SECTIONS.forEach(s=>{ nav+='<button class="shopNav'+(storeTab===s.key?' on':'')+'" data-st="'+s.key+'">'+s.icon+' '+s.label+'</button>'; });
@@ -1694,8 +1698,8 @@ function renderShop(){
 
   // top bar: balance + cart toggle (always visible, no scrolling needed)
   const topBar='<div class="shopTop">'+
-    '<div class="shopBal">Balance <b style="color:var(--coin)">'+fmt1(bal)+' BBT</b></div>'+
-    '<button class="cartTopBtn'+(cartOpen?' on':'')+'" id="cartToggle">\u{1F6D2} Cart ('+cartCount()+') \u00b7 '+fmt1(cartTotal())+' BBT</button>'+
+    '<div class="shopBal">Balance <b style="color:var(--phosphor)">$'+fmtUSD(bal)+'</b></div>'+
+    '<button class="cartTopBtn'+(cartOpen?' on':'')+'" id="cartToggle">\u{1F6D2} Cart ('+cartCount()+') \u00b7 $'+fmtUSD(cartTotal())+'</button>'+
     '</div>';
   const cartPanel = cartOpen ? renderCart() : '';
 
@@ -1724,14 +1728,14 @@ function renderLocShop(){
   const owned=new Set(SLOT.locations); let cards='';
   SHOP_ORDER.forEach(id=>{
     const loc=LOCATIONS[id]; const isOwned=owned.has(id);
-    const canAfford=WORLD.chain.player.balance>=loc.price; const rigCount=loc.rigSpots.length;
+    const canAfford=(SLOT.usd||0)>=loc.price; const rigCount=loc.rigSpots.length;
     let action;
     if(isOwned) action='<span style="color:var(--phosphor);font-size:12px;letter-spacing:1px">OWNED</span>';
     else if(loc.free) action='<button class="buyLoc" data-id="'+id+'">Claim (free)</button>';
-    else action='<button class="buyLoc" data-id="'+id+'"'+(canAfford?'':' disabled style="opacity:.4;cursor:not-allowed"')+'>Buy \u00B7 '+loc.price+' BBT</button>';
+    else action='<button class="buyLoc" data-id="'+id+'"'+(canAfford?'':' disabled style="opacity:.4;cursor:not-allowed"')+'>Buy \u00B7 $'+fmtUSD(loc.price)+'</button>';
     cards+='<div class="shopCard"><div class="shopThumb" style="background-image:url('+loc.img+')"></div>'+
       '<div class="shopInfo"><div class="shopName">'+loc.name+(isOwned?' <span style="color:var(--phosphor);font-size:10px">\u2713</span>':'')+'</div>'+
-      '<div class="shopBlurb">'+loc.blurb+'</div><div class="shopMeta">'+rigCount+' rig'+(rigCount>1?'s':'')+' \u00B7 '+(loc.free?'free':loc.price+' BBT')+'</div></div>'+
+      '<div class="shopBlurb">'+loc.blurb+'</div><div class="shopMeta">'+rigCount+' rig'+(rigCount>1?'s':'')+' \u00B7 '+(loc.free?'free':'$'+fmtUSD(loc.price))+'</div></div>'+
       '<div class="shopAction">'+action+'</div></div>';
   });
   return '<div class="note" style="margin:0 0 10px">Locations give you preset rigs instantly. Or buy parts below and assemble custom rigs.</div>'+cards;
@@ -1748,11 +1752,11 @@ function renderPartsSection(key){
     const inCart=CART.find(l=>l.id===it.id);
     rows+='<tr><td class="ptName">'+(it.vendor?'<span style="color:var(--textFaint)">'+it.vendor+'</span> ':'')+it.name+
       (spec?'<div class="ptSpec">'+spec+'</div>':'')+'</td>'+
-      '<td class="ptPrice">'+(it.price||0)+'</td>'+
+      '<td class="ptPrice">$'+fmtUSD(it.price||0)+'</td>'+
       '<td class="ptAdd"><button class="addCart" data-id="'+it.id+'">'+(inCart?'\u2713 '+inCart.qty:'Add')+'</button></td></tr>';
   });
   return '<div class="ptHead">'+sec.icon+' '+sec.label+' \u00b7 '+sec.items.length+' items</div>'+
-    '<table class="ptTable"><thead><tr><th>Item</th><th>BBT</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>';
+    '<table class="ptTable"><thead><tr><th>Item</th><th>USD</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>';
 }
 
 function renderCart(){
@@ -1760,15 +1764,15 @@ function renderCart(){
   let rows='';
   CART.forEach(l=>{ const p=partById(l.id);
     rows+='<div class="cartRow"><span class="cName">'+p.name+' \u00D7'+l.qty+'</span>'+
-      '<span class="cPrice">'+(priceOf(l.id)*l.qty)+' BBT</span>'+
+      '<span class="cPrice">$'+fmtUSD(priceOf(l.id)*l.qty)+'</span>'+
       '<button class="rmCart" data-id="'+l.id+'">\u2212</button></div>'; });
   const sub=cartSubtotal(), tax=cartTax(), tot=cartTotal();
-  const afford=tot<=WORLD.chain.player.balance;
+  const afford=tot<=(SLOT.usd||0);
   return '<div class="cartPanel">'+rows+
-    '<div class="cartTot"><span>Subtotal</span><span>'+fmt1(sub)+' BBT</span></div>'+
-    '<div class="cartTot"><span>Sales tax (5%)</span><span>'+fmt1(tax)+' BBT</span></div>'+
-    '<div class="cartTot total"><span>Total</span><span>'+fmt1(tot)+' BBT</span></div>'+
-    '<button id="checkoutBtn" class="checkoutBtn"'+(afford?'':' disabled style="opacity:.4;cursor:not-allowed"')+'>'+(afford?'Checkout \u2192 buy parts':'Not enough BBT')+'</button></div>';
+    '<div class="cartTot"><span>Subtotal</span><span>$'+fmtUSD(sub)+'</span></div>'+
+    '<div class="cartTot"><span>Sales tax (5%)</span><span>$'+fmtUSD(tax)+'</span></div>'+
+    '<div class="cartTot total"><span>Total</span><span>$'+fmtUSD(tot)+'</span></div>'+
+    '<button id="checkoutBtn" class="checkoutBtn"'+(afford?'':' disabled style="opacity:.4;cursor:not-allowed"')+'>'+(afford?'Checkout \u2192 buy parts':'Not enough USD')+'</button></div>';
 }
 
 function renderOwned(){
@@ -1799,8 +1803,8 @@ function renderOwned(){
 function buyLocation(id){
   const loc=LOCATIONS[id];
   if(SLOT.locations.includes(id)) return;
-  if(!loc.free && WORLD.chain.player.balance<loc.price){ return; }
-  if(!loc.free){ WORLD.chain.player.balance-=loc.price; }
+  if(!loc.free && (SLOT.usd||0)<loc.price){ return; }
+  if(!loc.free){ SLOT.usd-=loc.price; }
   SLOT.locations.push(id);
   const newRigs=makeLocationRigs(id).map(r=>({...r, locId:id}));
   RIGS.push(...newRigs); autoAssignPlugs();
@@ -1972,16 +1976,23 @@ document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>go(b.dataset.
 function render(){
   if(activeSlotN===null) return;
   const net=SRC.getNetwork(); const p=SRC.getPlayer();
-  document.getElementById('hudUsd').textContent='$'+fmt1(SLOT.usd||0);
-  document.getElementById('hudCoin').innerHTML='\u26C3 '+fmt1(p.balance)+' BBT <span style="color:var(--textFaint);font-size:11px">@$'+WORLD.econ.bbtUsd.toFixed(2)+'</span>';
+  document.getElementById('hudUsd').textContent='$'+fmtUSD(SLOT.usd||0);
+  document.getElementById('hudCoin').innerHTML='\u26C3 '+fmtBBT(p.balance)+' BBT <span style="color:var(--textFaint);font-size:11px">@$'+fmtUSD(WORLD.econ.bbtUsd)+'</span>';
   const gShare=net.globalHashRate>0?p.hashRate/net.globalHashRate:0;
   document.getElementById('hudRate').textContent=fmt(networkHashFromRigs())+' MH/s \u00B7 '+(gShare*100).toFixed(4)+'% net';
   if(activeTab==='dash') renderDash();
   else if(activeTab==='explore') renderExplore();
   else if(activeTab==='stats') renderStats();
-  else if(activeTab==='power') renderPower();
+  else if(activeTab==='power'){ if(!powerInteracting()) renderPower(); }
   else if(activeTab==='shop') renderShop();
   else if(activeTab==='settings') renderSettings();
+}
+/* True while the user is actively using a Power-page control, so the 1s tick
+   doesn't rebuild the page mid-interaction and snap a dropdown shut. */
+function powerInteracting(){
+  const a=document.activeElement;
+  if(!a) return false;
+  return a.classList && (a.classList.contains('plugAssignSel') || a.classList.contains('pduPowerBtn') || a.classList.contains('resetBtn'));
 }
 
 /* ---- BOOT: user identity first, then slot select ---- */

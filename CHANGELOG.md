@@ -3,6 +3,23 @@
 All notable changes to Rig Runner / *Miner's Life* are tracked here.
 Format loosely follows Keep a Changelog. Dates are YYYY-MM-DD.
 
+## [0.9.1] — 2026-06-24
+
+Minor release: fixes and currency polish.
+
+### Fixed
+- **Power plug-assign dropdown no longer snaps back** — the 1-second tick was
+  rebuilding the Power page mid-selection; it now skips the rebuild while you're
+  interacting with a plug dropdown, power switch, or reset button.
+
+### Changed
+- **BBT now shows 3 decimal places** everywhere (fractional tokens matter), and
+  **USD shows 2 decimals** (cents). Applied to the HUD and exchange.
+- **Store is now priced in USD** — item table, cart, sales tax, totals, and
+  locations all show and charge USD from your wallet (the exchange still trades
+  USD\u2194BBT). Earn salary in USD, buy parts directly; convert to BBT only when you
+  want to hold the token.
+
 ## [0.9] — 2026-06-24
 
 A full power/electrical overhaul: POWER is now its own page with a per-location
