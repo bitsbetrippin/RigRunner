@@ -1,25 +1,25 @@
-# Rig Runner - Miner's Life · v0.5
+# Rig Runner - Miner's Life · v0.8
 
-Browser-based crypto-mining sim. Pick one of 6 miners (save slots) in a shared
-world, run GPU farms across locations, buy parts and BUILD custom rigs, solo-mine
-or join a pool, earn BBT. Open index.html (or serve: python3 -m http.server 8000).
+Browser-based crypto-mining sim. Create an account, pick a miner + occupation,
+earn weekly USD, trade USD<->BBT on the dorm laptop exchange, buy parts, build &
+name rigs, watch your circuits, assign rigs to pools, and mine. Open index.html
+(or serve: python3 -m http.server 8000).
 
-## Store & rig building (v0.5)
-- 10 store categories: GPUs (49 real cards), Cases/Frames, Motherboards, CPU,
-  Memory, SSD, USB, GPU Risers, Case Fans, Power Supplies + Locations.
-- Shopping cart: subtotal -> 5% sales tax -> total in BBT, charged at checkout.
-  Bought parts go to a per-slot Parts Owned inventory.
-- Assemble custom rigs: case + matching motherboard (6/8/12/19, must match) + CPU
-  + memory + boot drive + risers + PSU + >=2 GPUs. Case/board size caps GPU count.
-- GPU hashrate/power RANGES map to Low/Normal/High (low=efficient, high=max).
-- Edit docs/parts_pricing.csv to set all part prices (starter prices included).
+## New in v0.8
+- Electrical system: Dorm = one 20A/120V circuit, Garage = two 30A/240V, Shack =
+  200A service with 6x30A panels + 6-plug PDUs (36 plugs, ~18 rigs). Soft cap:
+  over-safe warns, over-breaker trips and throttles. Stats > Power, per-room subtabs.
+- Console: stale (~0.1%) + rejected (0.5-1.3%) share statuses.
+- Exchange: 1m/5m/1h/1d/1w candle toggles, right-side price axis, live order book.
+- GPU-typed miner software (NVIDIA T-Rex / AMD TeamRedMiner) themes the console.
 
-## Slots, locations, world
-- 6 independent miners share ONE deterministic world (chain, pools, timeline, price).
-- Locations: Dorm (free, 1 rig), Garage (100 BBT, 4 rigs), Shack (200 BBT, 10 rigs).
-  All owned locations + built rigs mine simultaneously into your hashrate.
+## Core loop
+Occupation pays weekly USD (week 1 full, then 15%/wk). Convert USD->BBT on the
+laptop exchange. Buy parts (49 GPUs + components), assemble rigs (case + matching
+mobo 6/8/12/19 + CPU + memory + boot drive + risers + PSU + >=2 GPUs), place in
+owned locations within their circuit limits. Solo or pool mining; ~381 GH/s
+network, 8 pools, 10s blocks, ~4yr halving, 5 BBT reward.
 
-## Network
-~381 GH/s global, player starts ~0.044%. 8 pools (~85%), solo field ~15%. Solo =
-winner-take-all; pools = steady share, ~15min payout, minus fee. 10s blocks,
-~4-year halving, 5 BBT reward. Token: BBT. This is a game, not financial software.
+## Data (CSV-editable)
+docs/occupations.csv, docs/parts_pricing.csv. Fee tiers/volatility in
+engine/market.js; circuit layouts in engine/electrical.js. A game, not financial software.

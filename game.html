@@ -124,7 +124,7 @@
   #crtLog{position:absolute;left:0;right:0;bottom:0;padding:14px 16px;z-index:2;font-family:var(--mono);font-size:12.5px;line-height:1.5;text-shadow:0 0 4px currentColor;white-space:pre-wrap;word-break:break-word}
   .c-eth{color:#39ff8b} .c-gpu{color:#d96bff} .c-job{color:#9ad8ff}
   .c-share{color:#fff36b;font-weight:700} .c-ok{color:#39ff8b;font-weight:700}
-  .c-dim{color:#2f7d48} .c-warn{color:#ffb454}
+  .c-dim{color:#2f7d48} .c-warn{color:#ffb454} .c-rej{color:#ff5d5d;font-weight:700}
   .crtFoot{flex:none;display:flex;gap:10px;justify-content:space-between;align-items:center;padding:8px 14px;background:#0a120a;border-top:1px solid #15301a;color:#2f7d48;font-size:11px}
   .crtFoot b{color:#39ff8b}
   .crtBtn{background:#0a120a;border:1px solid #2f7d48;color:#39ff8b;border-radius:6px;padding:6px 12px;font-size:11px;letter-spacing:1px;cursor:pointer}
@@ -144,6 +144,18 @@
   .slotNew{background:var(--panelHi);color:var(--phosphor);border:1px solid var(--phosphorDim)}
   .slotDel{background:none;color:var(--textFaint);font-size:20px;cursor:pointer;padding:0 6px}
   .slotDel:hover{color:var(--ember)}
+  .occBack{background:var(--panelHi);color:var(--phosphor);border:1px solid var(--grid);border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer}
+  .occList{display:flex;flex-direction:column;gap:6px}
+  .occRow{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--grid);border-radius:10px;padding:11px 13px}
+  .occInfo{flex:1;min-width:0}
+  .occName{font-size:14px;font-weight:600}
+  .occMeta{color:var(--textDim);font-size:12px;margin-top:2px}
+  .occPick{flex:none;background:var(--phosphorDim);color:var(--void);border-radius:8px;padding:9px 14px;font-size:12px;font-weight:800;cursor:pointer}
+  .userBar{display:flex;justify-content:space-between;align-items:center;background:var(--panel);border:1px solid var(--grid);border-radius:12px;padding:12px 14px;margin-bottom:14px}
+  .uName{font-size:16px;font-weight:800}
+  .uId{font-family:var(--mono);font-size:11px;color:var(--textDim);margin-top:3px}
+  .uCopy{background:var(--panelHi);color:var(--phosphor);border:1px solid var(--grid);border-radius:5px;padding:2px 7px;font-size:10px;cursor:pointer;margin-left:4px}
+  .uSwitch{background:var(--panelHi);color:var(--textDim);border:1px solid var(--grid);border-radius:8px;padding:8px 12px;font-size:11px;cursor:pointer}
 
   /* shop */
   .shopList{margin-top:10px}
@@ -157,8 +169,32 @@
   .buyBtn{background:var(--phosphorDim);color:var(--void);border-radius:9px;padding:11px 14px;font-weight:800;letter-spacing:1px;font-size:12px;cursor:pointer}
 
   /* store v0.5 */
-  .stTabs{display:flex;gap:6px;overflow-x:auto;padding:10px 0;margin-bottom:4px;-webkit-overflow-scrolling:touch}
-  .stTab{flex:none;font-size:11px;letter-spacing:.5px;padding:8px 12px;border-radius:8px;cursor:pointer;border:1px solid var(--grid);background:var(--panel);color:var(--textDim);white-space:nowrap}
+  .stTabs{display:flex;gap:6px;overflow-x:auto;overflow-y:hidden;padding:10px 2px 12px;margin-bottom:4px;-webkit-overflow-scrolling:touch;scroll-behavior:auto;cursor:grab;scrollbar-width:thin;scrollbar-color:var(--phosphorDim) transparent}
+
+  /* shop rework: left nav + right table */
+  .shopTop{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:8px 0 10px;position:sticky;top:0;z-index:5}
+  .shopBal{font-size:13px;color:var(--textDim)}
+  .cartTopBtn{background:var(--panelHi);border:1px solid var(--phosphorDim);color:var(--phosphor);border-radius:10px;padding:10px 14px;font-weight:700;font-size:13px;cursor:pointer}
+  .cartTopBtn.on{background:var(--phosphorDim);color:var(--void)}
+  .shopGrid{display:grid;grid-template-columns:128px 1fr;gap:10px;align-items:start}
+  .shopNavCol{display:flex;flex-direction:column;gap:4px;position:sticky;top:48px}
+  .shopNav{text-align:left;padding:9px 10px;border-radius:8px;border:1px solid var(--grid);background:var(--panel);color:var(--textDim);font-size:11px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .shopNav.on{border-color:var(--phosphor);background:var(--phosphorDim);color:var(--void);font-weight:700}
+  .shopItems{min-width:0}
+  .ptHead{font-size:12px;letter-spacing:1px;color:var(--phosphor);margin-bottom:8px;text-transform:uppercase}
+  .ptTable{width:100%;border-collapse:collapse;font-size:13px}
+  .ptTable th{text-align:left;color:var(--textFaint);font-size:10px;letter-spacing:1px;padding:4px 6px;border-bottom:1px solid var(--grid)}
+  .ptTable td{padding:8px 6px;border-bottom:1px solid var(--grid2,#1c1f27);vertical-align:middle}
+  .ptName{font-weight:600}
+  .ptSpec{color:var(--textDim);font-size:11px;margin-top:2px;font-weight:400}
+  .ptPrice{color:var(--coin);font-weight:700;white-space:nowrap}
+  .ptAdd{text-align:right}
+  .ptAdd .addCart{background:var(--panelHi);color:var(--phosphor);border:1px solid var(--phosphorDim);border-radius:7px;padding:7px 12px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap}
+  .stTabs.dragging{cursor:grabbing;scroll-behavior:auto}
+  .stTabs::-webkit-scrollbar{height:8px}
+  .stTabs::-webkit-scrollbar-thumb{background:var(--phosphorDim);border-radius:4px}
+  .stTabs::-webkit-scrollbar-track{background:#0d0f1466;border-radius:4px}
+  .stTab{flex:none;font-size:11px;letter-spacing:.5px;padding:8px 12px;border-radius:8px;cursor:pointer;border:1px solid var(--grid);background:var(--panel);color:var(--textDim);white-space:nowrap;user-select:none}
   .stTab.on{border-color:var(--phosphor);background:var(--phosphorDim);color:var(--void);font-weight:700}
   .cartBar{position:sticky;top:0;z-index:5;padding:6px 0}
   .cartToggle{width:100%;background:var(--panelHi);border:1px solid var(--phosphorDim);color:var(--phosphor);border-radius:10px;padding:11px;font-weight:700;font-size:13px;cursor:pointer}
@@ -189,12 +225,63 @@
   .asmChip{background:var(--panelHi);border:1px solid var(--phosphorDim);color:var(--phosphor);border-radius:6px;padding:5px 9px;font-size:11px;cursor:pointer}
   .asmValid{margin:12px 0;padding:10px;border-radius:8px;background:var(--panel);border:1px solid var(--amber);color:var(--amber);font-size:12px;line-height:1.6}
   .asmValid.ok{border-color:var(--phosphor);color:var(--phosphor)}
+
+  /* exchange */
+  .exWallets{display:flex;gap:8px;margin:10px 0}
+  .exW{flex:1;background:var(--panel);border:1px solid var(--grid);border-radius:10px;padding:10px;text-align:center}
+  .exW .l{color:var(--textDim);font-size:10px;letter-spacing:1px}
+  .exW .v{font-size:17px;font-weight:800;margin-top:3px}
+  .exChart{background:var(--panel);border:1px solid var(--grid);border-radius:10px;padding:8px 10px;margin-bottom:10px}
+  .exChartMeta{color:var(--textDim);font-size:10px;margin-top:2px}
+  .exEvent{background:#3a2410;border:1px solid var(--amber);color:var(--amber);border-radius:8px;padding:7px 10px;font-size:12px;margin-bottom:10px;text-align:center}
+  .exIv{display:flex;gap:5px;margin-bottom:6px}
+  .ivBtn{flex:1;padding:6px;border-radius:6px;border:1px solid var(--grid);background:var(--panel);color:var(--textDim);font-size:11px;font-family:var(--mono);cursor:pointer}
+  .ivBtn.on{border-color:var(--phosphor);background:var(--phosphorDim);color:var(--void);font-weight:700}
+  .exSideRow{display:flex;gap:8px;margin-bottom:8px}
+  .exSideBtn{flex:1;padding:10px;border-radius:9px;border:1px solid var(--grid);background:var(--panel);font-weight:800;font-size:13px;cursor:pointer;letter-spacing:1px;color:var(--textDim)}
+  .exSideBtn.buy.on{background:#11351f;border-color:var(--phosphor);color:var(--phosphor)}
+  .exSideBtn.sell.on{background:#3a1414;border-color:var(--ember);color:var(--ember)}
+  .execBtn{width:100%;border-radius:10px;padding:14px;font-weight:800;letter-spacing:1px;font-size:14px;cursor:pointer;margin-top:6px;border:none}
+  .execBtn.buy{background:var(--phosphor);color:var(--void)}
+  .execBtn.sell{background:var(--ember);color:#fff}
+  .ordList{font-family:var(--mono);font-size:11px}
+  .ordRow{display:flex;justify-content:space-between;align-items:center;padding:6px 9px;background:var(--panel);border:1px solid var(--grid);border-radius:7px;margin-bottom:5px}
+  .ordRow .bid{color:var(--phosphor)} .ordRow .ask{color:var(--ember)}
+  .ordCancel{background:var(--panelHi);color:var(--textDim);border:1px solid var(--grid);border-radius:5px;padding:3px 8px;font-size:10px;cursor:pointer}
+  .exBook{display:grid;grid-template-columns:1fr;gap:2px;margin-bottom:12px;font-family:var(--mono);font-size:11px}
+  .obRow{display:flex;justify-content:space-between;padding:2px 8px;border-radius:3px}
+  .obRow.ask{color:var(--ember);background:#3a181833}
+  .obRow.bid{color:var(--phosphor);background:#16331f33}
+  .obMid{text-align:center;font-weight:800;font-size:13px;padding:4px;color:var(--coin)}
+  .exTabs{display:flex;gap:6px;margin-bottom:8px}
+  .exTab{flex:1;padding:11px;border-radius:9px;border:1px solid var(--grid);background:var(--panel);color:var(--textDim);font-weight:700;cursor:pointer}
+  .exTab.on{border-color:var(--phosphor);background:var(--phosphorDim);color:var(--void)}
+  .exModeRow{font-size:11px;color:var(--textDim);margin-bottom:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .exMode{padding:6px 10px;border-radius:7px;border:1px solid var(--grid);background:var(--panel);color:var(--textDim);font-size:11px;cursor:pointer}
+  .exMode.on{border-color:var(--amber);color:var(--amber)}
+  .exInputRow input{width:100%;background:var(--panelHi);color:var(--text);border:1px solid var(--grid);border-radius:9px;padding:12px;font-family:var(--mono);font-size:15px}
+  .exQuote{min-height:20px;margin:8px 0;font-size:13px}
+  .feeLadder{font-family:var(--mono);font-size:11px}
+  .feeRow{display:flex;justify-content:space-between;padding:5px 9px;border-radius:5px;color:var(--textDim)}
+  .feeRow.on{background:var(--phosphorDim);color:var(--void);font-weight:700}
+  .poolRow{cursor:pointer}
+  .poolRow:hover{background:var(--panelHi)}
+  .pdRow{display:flex;justify-content:space-between;font-family:var(--mono);font-size:12px;padding:6px 9px;background:var(--panel);border:1px solid var(--grid);border-radius:6px;margin-bottom:4px}
+  .pdRow.you{border-color:var(--phosphorDim);color:var(--phosphor)}
+  .pdRow.you.total{font-weight:700;background:var(--phosphorDim);color:var(--void)}
+  .pdMiner{background:var(--panel);border:1px solid var(--grid);border-radius:9px;padding:10px 12px;margin-bottom:6px;cursor:pointer}
+  .pdMHead{display:flex;justify-content:space-between;align-items:center}
+  .pdUser{font-family:var(--mono);font-size:13px;font-weight:600}
+  .pdHash{color:var(--phosphor);font-family:var(--mono);font-size:12px}
+  .pdMeta{color:var(--textDim);font-size:11px;margin-top:3px}
+  .pdRigs{margin-top:8px}
 </style>
 </head>
 <body>
 <header>
-  <div class="brand">RIG RUNNER &middot; DORM 1 <span class="ver">v0.5</span></div>
+  <div class="brand">RIG RUNNER &middot; DORM 1 <span class="ver">v0.8</span></div>
   <div class="hud">
+    <span class="coin" id="hudUsd" style="color:var(--phosphor)">$0</span>
     <span class="coin" id="hudCoin">&#9923; 0 BBT</span>
     <span class="rate" id="hudRate">0 H/s</span>
   </div>
@@ -254,6 +341,10 @@
 <script src="engine/power.js"></script>
 <script src="engine/locations.js"></script>
 <script src="engine/parts.js"></script>
+<script src="engine/occupations.js"></script>
+<script src="engine/market.js"></script>
+<script src="engine/pooldash.js"></script>
+<script src="engine/electrical.js"></script>
 <script>
 /* =========================================================================
    Rig Runner v0.1 — integrated build
@@ -285,7 +376,7 @@ function rigWattsTotal(r){
   }
   return rigWatts(r);
 }
-function rigLiveHash(r){ return r.state==='MINING' ? rigFullHash(r) : 0; }
+function rigLiveHash(r){ return (r.state==='MINING' && !rigThrottled(r)) ? rigFullHash(r) : 0; }
 /* Display helpers that work for BOTH preset (single GPU model) and custom rigs. */
 function rigGpuLabel(r){
   if(r.custom && r.gpus){
@@ -309,6 +400,20 @@ function totalDrawW(){ return RIGS.reduce((s,r)=>s+rigDrawW(r),0); }
 function totalBtu(){ return wattsToBtu(totalDrawW()); }
 function rigsInLocation(locId){ return RIGS.filter(r=>r.locId===locId); }
 
+/* Soft-cap throttle: rigs on a tripped breaker produce no hashrate (power cut).
+   Recomputed lazily; returns a Set of throttled rig ids. */
+let _throttled=new Set(); let _throttleStamp=0;
+function refreshThrottle(){
+  _throttled=new Set();
+  const byLoc={};
+  RIGS.forEach(r=>{ (byLoc[r.locId]=byLoc[r.locId]||[]).push(r); });
+  Object.keys(byLoc).forEach(locId=>{
+    const pw=locationPower(locId, byLoc[locId], r=>rigWattsTotal(r));
+    if(pw) pw.circuits.forEach(c=>{ if(c.tripped) c.rigs.forEach(r=>_throttled.add(r.id)); });
+  });
+}
+function rigThrottled(r){ return _throttled.has(r.id); }
+
 function miningTarget(){
   if(SLOT.poolId){
     const p=poolById(WORLD.chain, SLOT.poolId);
@@ -325,8 +430,24 @@ function miningTarget(){
      per-rig states/power, pool choice, power settings.
    ============================================================ */
 const WORLD_KEY='rigrunner:world:v1';
+const USER_KEY='rigrunner:user:v1';
 const slotKey=n=>'rigrunner:slot:'+n+':v1';
 const NUM_SLOTS=6;
+let USER=null; // { id, username, created }
+
+/* ---- global user identity (one user owns all 6 slots) ---- */
+function genUserId(){
+  // human-readable, copyable: RR-XXXX-XXXX
+  const cs='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  const blk=()=>Array.from({length:4},()=>cs[Math.floor(Math.random()*cs.length)]).join('');
+  return 'RR-'+blk()+'-'+blk();
+}
+function loadUser(){ try{ const raw=localStorage.getItem(USER_KEY); if(raw) return JSON.parse(raw); }catch(e){} return null; }
+function saveUser(){ try{ localStorage.setItem(USER_KEY, JSON.stringify(USER)); }catch(e){} }
+function createUser(username){
+  USER={ id:genUserId(), username:(username||'Player').slice(0,24), created:Date.now() };
+  saveUser(); return USER;
+}
 let WORLD=null;   // { chain, econ:{bbtUsd, lastSyncMs} }
 let SLOT=null;    // active slot record
 let activeSlotN=null;
@@ -352,20 +473,28 @@ function slotSummaries(){
   for(let n=0;n<NUM_SLOTS;n++){
     const s=readSlot(n);
     out.push(s ? { n, exists:true, name:s.name, balance:s.balance, locations:s.locations,
-                   rigCount:(s.rigs||[]).length, created:s.created }
+                   rigCount:(s.rigs||[]).length, created:s.created,
+                   usd:s.usd||0, occupation:s.occupation }
                : { n, exists:false });
   }
   return out;
 }
-function newSlot(n, name){
-  // brand-new human: owns the free dorm with its 1 rig, zero balance
+function newSlot(n, name, occupationId){
+  // brand-new human: owns the free dorm with its 1 rig
   const rigs=makeLocationRigs('dorm').map(r=>({ ...r, locId:'dorm' }));
   rigs.forEach(r=>r.state='MINING'); // first rig starts mining so they see life
+  const occ = occupationId ? occupationById(occupationId) : null;
+  const firstPay = occ ? occ.weekly : 0; // week 1 = full weekly salary
   const slot={ n, name:name||('Miner '+(n+1)), created:Date.now(),
+    userId: USER?USER.id:null, userName: USER?USER.username:null,
     balance:0, locations:['dorm'], poolId:null,
     rigs, settings:{ costPerKwh:ECON_DEFAULTS.costPerKwh }, kwhUsed:0, lastSyncMs:Date.now(),
-    parts:[],   // owned loose parts: [{uid, id, _section}]
-    builds:[] }; // assembled rigs from bought parts (separate from location preset rigs)
+    parts:[], builds:[],
+    occupation: occupationId||null,
+    usd: firstPay,                 // USD wallet — first paycheck deposited at start
+    lastPayMs: Date.now(),         // timestamp of last weekly payday
+    weeksPaid: 1,                  // week 1 already paid
+    tradeVolume: 0 };              // cumulative exchange volume (drives fee tier)
   localStorage.setItem(slotKey(n), JSON.stringify(slot));
   return slot;
 }
@@ -387,7 +516,13 @@ function enterSlot(n){
   if(!SLOT.settings) SLOT.settings={ costPerKwh:ECON_DEFAULTS.costPerKwh };
   if(!SLOT.parts) SLOT.parts=[];
   if(!SLOT.builds) SLOT.builds=[];
+  if(SLOT.usd===undefined) SLOT.usd=0;
+  if(SLOT.weeksPaid===undefined) SLOT.weeksPaid=0;
+  if(SLOT.lastPayMs===undefined) SLOT.lastPayMs=Date.now();
+  if(SLOT.tradeVolume===undefined) SLOT.tradeVolume=0;
+  if(!SLOT.orders) SLOT.orders=[];
   if(!CART) CART=[];
+  processSalary(); // catch up any weekly paydays owed
   RIGS = (SLOT.rigs||[]).map(r=>({ ...r }));
   // ensure dorm exists
   if(!RIGS.length){ RIGS=makeLocationRigs('dorm').map(r=>({...r,locId:'dorm'})); RIGS[0].state='MINING'; }
@@ -435,6 +570,21 @@ loadWorld(); // world ready; slot is entered after slot-select screen
 /* ---- live tick ---- */
 let shareHistory=[], priceHistory=[];
 function playerGlobalShare(){ const net=SRC.getNetwork(); const p=SRC.getPlayer(); return net.globalHashRate>0 ? p.hashRate/net.globalHashRate : 0; }
+
+/* Weekly payday: game week = real week. Week 1 paid full salary at slot creation;
+   each subsequent elapsed real week deposits 15% of the weekly salary into USD. */
+function processSalary(){
+  if(!SLOT.occupation) return;
+  const occ=occupationById(SLOT.occupation); if(!occ) return;
+  const now=Date.now();
+  let weeksElapsed=Math.floor((now-(SLOT.lastPayMs||now))/MS_PER_WEEK);
+  if(weeksElapsed<=0) return;
+  const followup=occ.weekly*SALARY_FOLLOWUP_RATE;
+  SLOT.usd += weeksElapsed*followup;
+  SLOT.lastPayMs += weeksElapsed*MS_PER_WEEK;
+  SLOT.weeksPaid += weeksElapsed;
+}
+function nextPaydayMs(){ return (SLOT.lastPayMs||Date.now())+MS_PER_WEEK; }
 function tick(){
   if(activeSlotN===null) return; // not in a slot yet
   const now=Date.now();
@@ -447,6 +597,8 @@ function tick(){
 
   // sync the shared world (price + deterministic chain)
   syncWorld();
+  processSalary(); // weekly paydays
+  if(SLOT.orders&&SLOT.orders.length) processLimitOrders();
 
   priceHistory.push(WORLD.econ.bbtUsd); if(priceHistory.length>60) priceHistory.shift();
   shareHistory.push(playerGlobalShare());
@@ -458,6 +610,203 @@ setInterval(tick, 1000); // render once a second; chain cadence is time-driven, 
 /* ---- helpers ---- */
 const fmt=n=>Math.round(n).toLocaleString();
 const fmt1=n=>n.toFixed(1);
+const fmt2=n=>n.toFixed(2);
+
+/* ============================================================
+   EXCHANGE (v0.6): USD <-> BBT, reflects sim price (no market impact)
+   ============================================================ */
+const FEE_TIERS=[
+  { min:0,        maker:0.0040, taker:0.0060, label:'Tier 0' },
+  { min:10000,    maker:0.0030, taker:0.0050, label:'Tier 1' },
+  { min:50000,    maker:0.0020, taker:0.0040, label:'Tier 2' },
+  { min:250000,   maker:0.0012, taker:0.0030, label:'Tier 3' },
+  { min:1000000,  maker:0.0006, taker:0.0020, label:'Tier 4' },
+  { min:5000000,  maker:0.0000, taker:0.0010, label:'Tier 5' },
+];
+function feeTierFor(vol){ let t=FEE_TIERS[0]; for(const f of FEE_TIERS){ if(vol>=f.min) t=f; } return t; }
+let exMode='taker', exSide='buy', exInterval='1m';
+function minedSupply(){ const net=SRC.getNetwork(); return net.height * currentBlockReward(net); }
+function bbtPrice(){ return WORLD.econ.bbtUsd; }
+function buildOrderBook(){
+  const px=bbtPrice(); const supply=minedSupply();
+  const depthUnit=Math.max(50, supply*0.00002);
+  const asks=[], bids=[];
+  for(let i=1;i<=8;i++){
+    const ap=px*(1+0.0008*i), bp=px*(1-0.0008*i);
+    asks.push({px:ap, sz:Math.max(1,depthUnit*(1+Math.sin(i*1.3)*0.3)*(9-i)/8)});
+    bids.push({px:bp, sz:Math.max(1,depthUnit*(1+Math.cos(i*1.1)*0.3)*(9-i)/8)});
+  }
+  return {asks:asks.reverse(), bids};
+}
+/* Live order book: churns each tick with random size jitter + slight price wiggle
+   so it visibly moves like a busy market. Depth scales with mined supply. */
+function buildLiveBook(px){
+  const supply=minedSupply(); const depthUnit=Math.max(50, supply*0.00002);
+  const asks=[], bids=[];
+  for(let i=1;i<=9;i++){
+    const jw=(Math.random()-0.5)*0.0003; // price wiggle within the level
+    const ap=px*(1+0.0007*i+jw), bp=px*(1-0.0007*i-jw);
+    const aSz=depthUnit*(0.4+Math.random()*1.2)*(10-i)/9;
+    const bSz=depthUnit*(0.4+Math.random()*1.2)*(10-i)/9;
+    asks.push({px:ap, sz:Math.max(1,aSz)});
+    bids.push({px:bp, sz:Math.max(1,bSz)});
+  }
+  return {asks:asks.reverse(), bids};
+}
+function openExchange(){ exRender(); backdrop.classList.add('open'); }
+/* render an SVG candlestick chart from 1-min candles */
+function renderCandles(candles){
+  const W=300, axisW=42, plotW=W-axisW, H=130, n=candles.length;
+  const prices=candles.flatMap(c=>[c.high,c.low]); const lo=Math.min(...prices), hi=Math.max(...prices);
+  const span=(hi-lo)||1; const pad=span*0.08; const loP=lo-pad, hiP=hi+pad, spanP=(hiP-loP)||1;
+  const cw=plotW/n; const bodyW=Math.max(1.4, cw*0.6);
+  const Y=p=>H-12-((p-loP)/spanP)*(H-22);
+  const vMax=Math.max(...candles.map(c=>c.vol))||1;
+  let grid='', body='', axis='';
+  for(let g=0;g<=4;g++){
+    const pr=loP+(spanP*g/4); const y=Y(pr);
+    grid+='<line x1="0" y1="'+y.toFixed(1)+'" x2="'+plotW+'" y2="'+y.toFixed(1)+'" stroke="var(--grid)" stroke-width="0.4" opacity="0.5"/>';
+    axis+='<text x="'+(plotW+3)+'" y="'+(y+3).toFixed(1)+'" fill="var(--textDim)" font-size="8" font-family="monospace">$'+pr.toFixed(2)+'</text>';
+  }
+  const last=candles[candles.length-1].close; const yLast=Y(last);
+  grid+='<line x1="0" y1="'+yLast.toFixed(1)+'" x2="'+plotW+'" y2="'+yLast.toFixed(1)+'" stroke="var(--coin)" stroke-width="0.6" stroke-dasharray="3,2" opacity="0.7"/>';
+  axis+='<rect x="'+plotW+'" y="'+(yLast-6).toFixed(1)+'" width="'+axisW+'" height="12" fill="var(--coin)" opacity="0.9"/>'+
+        '<text x="'+(plotW+3)+'" y="'+(yLast+3).toFixed(1)+'" fill="#000" font-size="8" font-weight="bold" font-family="monospace">$'+last.toFixed(2)+'</text>';
+  candles.forEach((c,i)=>{
+    const x=i*cw+cw/2; const col=c.up?'var(--phosphor)':'var(--ember)';
+    const vh=(c.vol/vMax)*20; body+='<rect x="'+(x-bodyW/2).toFixed(1)+'" y="'+(H-vh).toFixed(1)+'" width="'+bodyW.toFixed(1)+'" height="'+vh.toFixed(1)+'" fill="'+col+'" opacity="0.18"/>';
+    body+='<line x1="'+x.toFixed(1)+'" y1="'+Y(c.high).toFixed(1)+'" x2="'+x.toFixed(1)+'" y2="'+Y(c.low).toFixed(1)+'" stroke="'+col+'" stroke-width="0.8"/>';
+    const yo=Y(c.open), yc=Y(c.close); const top=Math.min(yo,yc); const bh=Math.max(1,Math.abs(yc-yo));
+    body+='<rect x="'+(x-bodyW/2).toFixed(1)+'" y="'+top.toFixed(1)+'" width="'+bodyW.toFixed(1)+'" height="'+bh.toFixed(1)+'" fill="'+col+'"/>';
+  });
+  return '<svg viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="none" style="width:100%;height:150px">'+grid+body+axis+'</svg>';
+}
+function exRender(){
+  processLimitOrders(); // fill any resting orders the market reached
+  const px=bbtPrice(); const tier=feeTierFor(SLOT.tradeVolume||0);
+  const genesisMs=WORLD.chain.network.genesisMs;
+  const candles=buildCandlesInterval(genesisMs, Date.now(), px, exInterval, 60);
+  const cl=candles.map(c=>c.close); const lo=Math.min(...cl), hi=Math.max(...cl);
+  const first=candles[0].open, last=candles[candles.length-1].close;
+  const chg=((last-first)/first)*100; const inEvent=candles[candles.length-1].event;
+  const ob=buildLiveBook(px);
+  let asks=''; ob.asks.forEach(o=>{ asks+='<div class="obRow ask"><span>'+fmt2(o.px)+'</span><span>'+fmt(o.sz)+'</span></div>'; });
+  let bids=''; ob.bids.forEach(o=>{ bids+='<div class="obRow bid"><span>'+fmt2(o.px)+'</span><span>'+fmt(o.sz)+'</span></div>'; });
+  let ladder=''; FEE_TIERS.forEach(t=>{ const on=t.label===tier.label;
+    ladder+='<div class="feeRow'+(on?' on':'')+'"><span>'+t.label+'</span><span>$'+fmt(t.min)+'+</span><span>'+(t.maker*100).toFixed(2)+'% / '+(t.taker*100).toFixed(2)+'%</span></div>'; });
+  // interval toggle
+  let ivBtns=''; ['1m','5m','1h','1d','1w'].forEach(k=>{ ivBtns+='<button class="ivBtn'+(exInterval===k?' on':'')+'" data-iv="'+k+'">'+k+'</button>'; });
+  // open limit orders
+  let openOrders='';
+  (SLOT.orders||[]).forEach(o=>{ openOrders+='<div class="ordRow"><span class="'+(o.side==='buy'?'bid':'ask')+'">'+o.side.toUpperCase()+' '+(o.side==='buy'?'$'+fmt2(o.amount)+' USD':fmt2(o.amount)+' BBT')+' @ $'+fmt2(o.limit)+'</span><button class="ordCancel" data-id="'+o.id+'">cancel</button></div>'; });
+
+  const f=exMode==='maker'?tier.maker:tier.taker;
+  sheet.innerHTML=
+    '<div class="sheetHead"><div><h2>Exchange</h2><div class="sub">USD / BBT \u00b7 1m candles</div></div><button class="closeX" id="cxEx">\u00d7</button></div>'+
+    '<div class="exWallets"><div class="exW"><div class="l">USD</div><div class="v" style="color:var(--phosphor)">$'+fmt1(SLOT.usd||0)+'</div></div>'+
+    '<div class="exW"><div class="l">BBT</div><div class="v" style="color:var(--coin)">'+fmt1(WORLD.chain.player.balance)+'</div></div>'+
+    '<div class="exW"><div class="l">Price</div><div class="v" style="color:'+(chg>=0?'var(--phosphor)':'var(--ember)')+'">$'+fmt2(px)+'</div><div style="font-size:10px;color:'+(chg>=0?'var(--phosphor)':'var(--ember)')+'">'+(chg>=0?'+':'')+chg.toFixed(2)+'% 1h</div></div></div>'+
+    (inEvent?'<div class="exEvent">\u26a1 High volatility event in progress</div>':'')+
+    '<div class="exIv">'+ivBtns+'</div>'+
+    '<div class="exChart" id="exChart">'+renderCandles(candles)+'<div class="exChartMeta">60\u00d7 '+exInterval+' candles \u00b7 range $'+fmt2(lo)+' \u2013 $'+fmt2(hi)+'</div></div>'+
+    '<div class="exBook" id="exBook"><div class="obCol asks">'+asks+'</div>'+
+      '<div class="obMid">$'+fmt2(px)+'</div>'+
+      '<div class="obCol bids">'+bids+'</div></div>'+
+    '<div class="exTrade">'+
+      '<div class="exSideRow"><button class="exSideBtn buy'+(exSide==='buy'?' on':'')+'" id="exBuy">BUY</button>'+
+        '<button class="exSideBtn sell'+(exSide==='sell'?' on':'')+'" id="exSell">SELL</button></div>'+
+      '<div class="exModeRow">'+
+        '<button class="exMode'+(exMode==='taker'?' on':'')+'" id="exTaker">Market '+(tier.taker*100).toFixed(2)+'%</button>'+
+        '<button class="exMode'+(exMode==='maker'?' on':'')+'" id="exMaker">Limit '+(tier.maker*100).toFixed(2)+'%</button></div>'+
+      '<div class="exInputRow"><input id="exAmt" type="number" min="0" step="any" placeholder="'+(exSide==='buy'?'USD to spend':'BBT to sell')+'"/></div>'+
+      (exMode==='maker'?'<div class="exInputRow"><input id="exLimit" type="number" min="0" step="any" placeholder="Limit price (USD per BBT), now $'+fmt2(px)+'"/></div>':'')+
+      '<div class="exQuote" id="exQuote"></div>'+
+      '<button class="execBtn '+(exSide==='buy'?'buy':'sell')+'" id="exExec">'+(exMode==='maker'?'Place ':'')+(exSide==='buy'?'Buy BBT':'Sell BBT')+'</button>'+
+    '</div>'+
+    (openOrders?'<div class="section">Open limit orders</div><div class="ordList">'+openOrders+'</div>':'')+
+    '<div class="section">Fee tiers \u00b7 30d volume $'+fmt(SLOT.tradeVolume||0)+'</div><div class="feeLadder">'+ladder+'</div>'+
+    '<div class="note">Green BUY / red SELL. Market fills now at the taker fee; Limit rests until price reaches your level (maker fee). Higher volume lowers fees. 1-minute candles with simulated volume; rare 3\u20135 min events swing 15\u201320%.</div>';
+  document.getElementById('cxEx').onclick=()=>backdrop.classList.remove('open');
+  document.getElementById('exBuy').onclick=()=>{ exSide='buy'; exRender(); };
+  document.getElementById('exSell').onclick=()=>{ exSide='sell'; exRender(); };
+  document.getElementById('exTaker').onclick=()=>{ exMode='taker'; exRender(); };
+  document.getElementById('exMaker').onclick=()=>{ exMode='maker'; exRender(); };
+  document.querySelectorAll('.ordCancel').forEach(b=>b.onclick=()=>{ SLOT.orders=(SLOT.orders||[]).filter(o=>o.id!==b.dataset.id); save(); exRender(); });
+  const amt=document.getElementById('exAmt'); const quote=document.getElementById('exQuote');
+  const limitInp=document.getElementById('exLimit');
+  function updateQuote(){
+    const a=parseFloat(amt.value)||0; const useLimit=exMode==='maker'&&limitInp&&parseFloat(limitInp.value)>0;
+    const px2=useLimit?parseFloat(limitInp.value):bbtPrice();
+    if(exSide==='buy'){ const bbt=(a-a*f)/px2;
+      quote.innerHTML=a>0?('You receive \u2248 <b style="color:var(--coin)">'+fmt2(bbt)+' BBT</b><br><span style="color:var(--textDim);font-size:11px">fee '+(f*100).toFixed(2)+'% \u00b7 @ $'+fmt2(px2)+(useLimit?' (limit)':'')+'</span>'):'';
+    } else { const net=a*px2-a*px2*f;
+      quote.innerHTML=a>0?('You receive \u2248 <b style="color:var(--phosphor)">$'+fmt2(net)+'</b><br><span style="color:var(--textDim);font-size:11px">fee '+(f*100).toFixed(2)+'% \u00b7 @ $'+fmt2(px2)+(useLimit?' (limit)':'')+'</span>'):'';
+    }
+  }
+  amt.oninput=updateQuote; if(limitInp) limitInp.oninput=updateQuote; updateQuote();
+  document.getElementById('exExec').onclick=()=>{
+    const a=parseFloat(amt.value)||0;
+    if(exMode==='maker' && limitInp && parseFloat(limitInp.value)>0) placeLimit(a, parseFloat(limitInp.value));
+    else execTrade(a);
+  };
+  document.querySelectorAll('.ivBtn').forEach(b=>b.onclick=()=>{ exInterval=b.dataset.iv; exRender(); });
+  startExLive(); // begin live order-book + chart churn (only refreshes those nodes)
+}
+/* Live churn: updates ONLY the order book + chart so trade inputs keep focus. */
+let exLiveTimer=null;
+function startExLive(){
+  if(exLiveTimer) clearInterval(exLiveTimer);
+  exLiveTimer=setInterval(()=>{
+    if(!backdrop.classList.contains('open')){ clearInterval(exLiveTimer); exLiveTimer=null; return; }
+    const bookEl=document.getElementById('exBook'); if(!bookEl){ clearInterval(exLiveTimer); exLiveTimer=null; return; }
+    const px=bbtPrice(); const ob=buildLiveBook(px);
+    let asks=''; ob.asks.forEach(o=>{ asks+='<div class="obRow ask"><span>'+fmt2(o.px)+'</span><span>'+fmt(o.sz)+'</span></div>'; });
+    let bids=''; ob.bids.forEach(o=>{ bids+='<div class="obRow bid"><span>'+fmt2(o.px)+'</span><span>'+fmt(o.sz)+'</span></div>'; });
+    bookEl.innerHTML='<div class="obCol asks">'+asks+'</div><div class="obMid">$'+fmt2(px)+'</div><div class="obCol bids">'+bids+'</div>';
+    // refresh chart too (cheap)
+    const chartEl=document.getElementById('exChart');
+    if(chartEl){ const genesisMs=WORLD.chain.network.genesisMs; const candles=buildCandlesInterval(genesisMs, Date.now(), px, exInterval, 60);
+      const cl=candles.map(c=>c.close); const lo=Math.min(...cl), hi=Math.max(...cl);
+      chartEl.innerHTML=renderCandles(candles)+'<div class="exChartMeta">60\u00d7 '+exInterval+' candles \u00b7 range $'+fmt2(lo)+' \u2013 $'+fmt2(hi)+'</div>'; }
+  }, 900);
+}
+function execTrade(a){
+  if(a<=0) return;
+  const px=bbtPrice(); const tier=feeTierFor(SLOT.tradeVolume||0); const f=tier.taker;
+  if(exSide==='buy'){
+    if(a>(SLOT.usd||0)){ alert('Not enough USD. You have $'+fmt2(SLOT.usd||0)); return; }
+    const bbt=(a-a*f)/px;
+    SLOT.usd-=a; WORLD.chain.player.balance+=bbt; SLOT.tradeVolume=(SLOT.tradeVolume||0)+a;
+  } else {
+    if(a>WORLD.chain.player.balance){ alert('Not enough BBT. You have '+fmt1(WORLD.chain.player.balance)); return; }
+    const usdGross=a*px; const net=usdGross-usdGross*f;
+    WORLD.chain.player.balance-=a; SLOT.usd=(SLOT.usd||0)+net; SLOT.tradeVolume=(SLOT.tradeVolume||0)+usdGross;
+  }
+  save(); exRender(); render();
+}
+/* place a resting limit order; reserves funds */
+function placeLimit(amount, limit){
+  if(amount<=0||limit<=0) return;
+  if(exSide==='buy'){ if(amount>(SLOT.usd||0)){ alert('Not enough USD to reserve.'); return; } SLOT.usd-=amount; }
+  else { if(amount>WORLD.chain.player.balance){ alert('Not enough BBT to reserve.'); return; } WORLD.chain.player.balance-=amount; }
+  SLOT.orders=SLOT.orders||[];
+  SLOT.orders.push({ id:'o'+Date.now(), side:exSide, amount, limit, placed:Date.now() });
+  save(); exRender(); render();
+}
+/* fill resting limit orders when the market price crosses their level (maker fee) */
+function processLimitOrders(){
+  if(!SLOT.orders||!SLOT.orders.length) return;
+  const px=bbtPrice(); const tier=feeTierFor(SLOT.tradeVolume||0); const f=tier.maker;
+  const remain=[];
+  SLOT.orders.forEach(o=>{
+    const fillable = o.side==='buy' ? px<=o.limit : px>=o.limit;
+    if(fillable){
+      if(o.side==='buy'){ const bbt=(o.amount-o.amount*f)/o.limit; WORLD.chain.player.balance+=bbt; SLOT.tradeVolume=(SLOT.tradeVolume||0)+o.amount; }
+      else { const usdGross=o.amount*o.limit; SLOT.usd=(SLOT.usd||0)+usdGross-usdGross*f; SLOT.tradeVolume=(SLOT.tradeVolume||0)+usdGross; }
+    } else remain.push(o);
+  });
+  SLOT.orders=remain;
+}
 const pct=n=>(n*100).toFixed(1)+'%';
 const shortAddr=id=>'rigvaloper1'+id.replace(/[^a-z0-9]/gi,'').slice(0,8).toLowerCase()+'\u2026q'+(id.length*7%97);
 const ago=ms=>{const s=Math.floor((Date.now()-ms)/1000); if(s<60)return s+'s ago'; return Math.floor(s/60)+'m ago';};
@@ -511,6 +860,16 @@ function placeRigHotspots(){
       c.onclick=()=>openRigStats(rig); bar.appendChild(c); });
     roomWrap.appendChild(bar);
   }
+  // laptop -> exchange terminal
+  if(loc.laptop){
+    const lp=loc.laptop;
+    const hot=document.createElement('div'); hot.className='rigHotDyn';
+    hot.style.cssText='position:absolute;cursor:pointer;border-radius:6px;left:'+lp.left+'%;top:'+lp.top+'%;width:'+lp.width+'%;height:'+lp.height+'%;';
+    hot.title='Open exchange';
+    hot.innerHTML='<div style="position:absolute;inset:0;border:2px solid var(--amber);border-radius:6px;opacity:.55;animation:pulse 1.9s ease-in-out infinite"></div>';
+    hot.onclick=openExchange;
+    roomWrap.appendChild(hot);
+  }
 }
 img.addEventListener('load', placeRigHotspots);
 img.addEventListener('error', function(){ const e=document.getElementById('imgErr'); if(e){e.style.display='block';} });
@@ -542,10 +901,13 @@ function openRigStats(rig){
   const curPool=APP.settings.poolId?poolById(APP.chain,APP.settings.poolId):null;
   const poolLine=curPool? curPool.name+' \u00B7 '+curPool.host+':'+curPool.port+' \u00B7 '+(curPool.fee*100).toFixed(1)+'% fee'
                         : 'Solo mining \u00B7 you vs. the whole network';
-  sheet.innerHTML='<div class="sheetHead"><div><h2>'+rig.label+'</h2>'+
+  sheet.innerHTML='<div class="sheetHead"><div><h2>'+(rig.name||rig.label)+'</h2>'+
     '<div class="sub">'+rig.count+'\u00D7 '+gpuLabel+' \u00B7 '+rig.state+'</div></div>'+
     '<button class="closeX" id="closeRig">\u00D7</button></div>'+
-    '<div class="totals">'+
+    '<div class="cardsLabel">Rig name (used as your pool rig ID)</div>'+
+    '<div style="display:flex;gap:6px"><input id="rigName" maxlength="20" value="'+(rig.name||'').replace(/"/g,'&quot;')+'" placeholder="'+rig.label+'" style="flex:1;background:var(--panelHi);color:var(--text);border:1px solid var(--grid);border-radius:8px;padding:10px;font-family:var(--mono);font-size:13px"/>'+
+    '<button id="rigNameSave" style="background:var(--phosphorDim);color:var(--void);border-radius:8px;padding:0 14px;font-weight:700;cursor:pointer">Save</button></div>'+
+    '<div class="totals" style="margin-top:12px">'+
     '<div class="tcard"><div class="v" style="color:var(--phosphor)">'+fmt(rigLiveHash(rig))+'</div><div class="l">MH/s LIVE</div></div>'+
     '<div class="tcard"><div class="v" style="color:var(--amber)">'+fmt(watts)+'</div><div class="l">WATTS</div></div>'+
     '<div class="tcard"><div class="v" style="color:var(--amber)">'+fmt(btu)+'</div><div class="l">BTU/HR</div></div>'+
@@ -567,6 +929,11 @@ function openRigStats(rig){
     '<button class="ghost" id="toExplore">Explorer \u2192</button>'+
     '</div>';
   document.getElementById('closeRig').onclick=()=>backdrop.classList.remove('open');
+  document.getElementById('rigNameSave').onclick=()=>{
+    const v=document.getElementById('rigName').value.trim().slice(0,20);
+    rig.name = v || null;
+    save(); openRigStats(rig); renderRoom();
+  };
   document.getElementById('poolSel').onchange=(e)=>{
     const v=e.target.value;
     const prevPool=APP.settings.poolId; // for change detection
@@ -697,20 +1064,35 @@ function refreshConsoleForState(rig, justOpened){
   }
 }
 
+/* Miner-software theme by dominant GPU vendor — different cards run different
+   miner software with a distinct console style. Foundation for per-GPU themes. */
+function rigMinerTheme(rig){
+  let nv=0, amd=0;
+  if(rig.custom && rig.gpus){
+    rig.gpus.forEach(gid=>{ const p=partById(gid); if(p&&p.vendor==='NVIDIA') nv++; else if(p&&p.vendor==='AMD') amd++; });
+  } else { amd=rig.count; } // preset dorm rig is RX 6800 (AMD)
+  const vendor = nv>amd ? 'NVIDIA' : 'AMD';
+  if(vendor==='NVIDIA') return { vendor, software:'T-Rex', ver:'0.26.8',
+    platform:'CUDA 11.8 \u00b7 NVIDIA driver 525.x', dag:'Generating light cache + DAG', algo:'ethash' };
+  return { vendor, software:'TeamRedMiner', ver:'0.10.7',
+    platform:'OpenCL \u00b7 AMD Accelerated Parallel Processing', dag:'Building DAG', algo:'ethash' };
+}
+
 function bootSequence(rig){
   const cards=rigCardList(rig);
   const gpuLabel=rigGpuLabel(rig);
   const tgt=miningTarget();
+  const th=rigMinerTheme(rig);
   crtStatus.textContent='initializing\u2026';
   const steps=[
-    ['RIG RUNNER miner v0.9.2 \u2014 '+rig.count+'x '+gpuLabel, 'c-ok', 250],
-    ['Loading OpenCL platform AMD Accelerated Parallel Processing\u2026', 'c-dim', 350],
+    [th.software+' '+th.ver+' \u2014 '+rig.count+'x '+gpuLabel+' ['+th.vendor+']', 'c-ok', 250],
+    ['Loading '+th.platform+'\u2026', 'c-dim', 350],
     ...cards.map((c,i)=>['Detected GPU'+i+': '+c.name+'  '+c.watts+'W', 'c-eth', 150]),
     [(tgt.solo?'Starting SOLO miner \u2014 local node ':'Connecting to pool '+tgt.name+' ')+tgt.label+' \u2026', 'c-job', 380],
     [tgt.solo?'Solo mode \u2014 mining directly to your wallet':'Authorized on '+tgt.name+'. Subscribed to mining.notify', 'c-ok', 280],
-    ...Array.from({length:rig.count},(_,i)=>['Building DAG for GPU'+i+' \u2026 epoch 482', 'c-dim', 200]),
+    ...Array.from({length:rig.count},(_,i)=>[th.dag+' for GPU'+i+' \u2026 epoch 482', 'c-dim', 200]),
     ['DAG generation complete ('+rig.count+' GPUs) \u2014 '+(3*rig.count)+'.0 GB', 'c-ok', 320],
-    ['ETH: Mining started on '+(tgt.solo?'SOLO':tgt.name)+'. target '+rigFullHash(rig).toFixed(1)+' Mh/s', 'c-eth', 300],
+    [th.algo+': Mining started on '+(tgt.solo?'SOLO':tgt.name)+'. target '+rigFullHash(rig).toFixed(1)+' Mh/s', 'c-eth', 300],
   ];
   let i=0;
   (function next(){
@@ -751,29 +1133,50 @@ function stopSequence(rig){
   })();
 }
 
+function rigRejectRate(rig){
+  // stable per-rig reject rate in 0.5%–1.3%, derived from rig id so it's consistent
+  if(rig._rejRate===undefined){
+    let h=0; const s=(rig.id||'r'); for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0;
+    rig._rejRate=0.005+((h%80)/100)*0.01; // 0.005..0.013
+  }
+  return rig._rejRate;
+}
 function loopMining(rig){
   if(consoleRig!==rig || rig.state!=='MINING'){ return; }
+  if(rig.shares===undefined) rig.shares=0;
+  if(rig.rejected===undefined) rig.rejected=0;
+  if(rig.stale===undefined) rig.stale=0;
+  const th=rigMinerTheme(rig); const PFX=th.software==='T-Rex'?'T-Rex: ':'TRM: ';
   const roll=Math.random();
   if(roll<0.30){
     const per=Array.from({length:rig.count},()=>mhPerCard(rig));
     const tot=per.reduce((a,b)=>a+b,0);
-    pushLine('ETH: Total Speed: '+tot.toFixed(3)+' Mh/s, Shares: '+rig.shares+', Rejected: 0 \u00B7 '+fmt(rigFullHash(rig))+' MH/s', 'c-eth');
-    let line='ETH: '; per.forEach((m,i)=>{ line+='GPU'+i+' '+m.toFixed(3)+' Mh/s'+(i<rig.count-1?', ':''); });
+    pushLine(PFX+'Total Speed: '+tot.toFixed(3)+' Mh/s, Shares: '+rig.shares+', Stale: '+rig.stale+', Rejected: '+rig.rejected+' \u00B7 '+fmt(rigFullHash(rig))+' MH/s', 'c-eth');
+    let line=PFX; per.forEach((m,i)=>{ line+='GPU'+i+' '+m.toFixed(3)+' Mh/s'+(i<rig.count-1?', ':''); });
     pushLine(line,'c-eth');
   } else if(roll<0.50){
     let line=''; for(let i=0;i<rig.count;i++){ const t=50+Math.floor(Math.random()*22); const fan=20+Math.floor(Math.random()*55);
       line+='GPU'+i+' t='+t+'C fan='+fan+'%'+(i<rig.count-1?', ':''); }
     pushLine(line,'c-gpu');
   } else if(roll<0.72){
-    pushLine('ETH: '+nowClock()+' \u2014 New job #'+(rig.jobId++).toString(16)+' from '+miningTarget().label, 'c-job');
+    pushLine(PFX+nowClock()+' \u2014 New job #'+(rig.jobId++).toString(16)+' from '+miningTarget().label, 'c-job');
   } else if(roll<0.90){
     const g=Math.floor(Math.random()*rig.count);
-    pushLine('ETH: '+nowClock()+' \u2014 SHARE FOUND \u2014 (GPU '+g+')', 'c-share');
-    const ms=20+Math.floor(Math.random()*60); rig.shares++;
-    consoleTimer=setTimeout(()=>{ if(consoleRig===rig&&rig.state==='MINING') pushLine('ETH: Share accepted ('+ms+' ms)!', 'c-ok'); continueLoop(rig); }, 150);
+    pushLine(PFX+nowClock()+' \u2014 SHARE FOUND \u2014 (GPU '+g+')', 'c-share');
+    const ms=20+Math.floor(Math.random()*60);
+    // decide outcome: ~0.1% stale, reject rate 0.5-1.3%, else accepted
+    const o=Math.random(); const rej=rigRejectRate(rig);
+    consoleTimer=setTimeout(()=>{
+      if(consoleRig===rig&&rig.state==='MINING'){
+        if(o<0.001){ rig.stale++; pushLine(PFX+nowClock()+' \u2014 Share above target (stale share) \u2014 GPU '+g, 'c-warn'); }
+        else if(o<0.001+rej){ rig.rejected++; pushLine(PFX+'Share rejected ('+ms+' ms) - low difficulty share', 'c-rej'); }
+        else { rig.shares++; pushLine(PFX+'Share accepted ('+ms+' ms)!', 'c-ok'); }
+      }
+      continueLoop(rig);
+    }, 150);
     return;
   } else {
-    pushLine('ETH: Pool set difficulty to '+(4+Math.floor(Math.random()*8))+'.00 G', 'c-dim');
+    pushLine(PFX+'Pool set difficulty to '+(4+Math.floor(Math.random()*8))+'.00 G', 'c-dim');
   }
   continueLoop(rig);
 }
@@ -841,8 +1244,8 @@ function renderExplore(){
     const label = e.kind==='pool'?e.name : e.kind==='player'?e.name : 'Independent miners';
     const tag = e.kind==='player'?'<span class="npill">YOU \u00B7 SOLO</span>'
               : (e.kind==='pool'&&APP.settings.poolId===e.id)?'<span class="npill">YOUR POOL</span>':'';
-    vrows+=`<tr class="${isMe?'me':''}"><td>${i+1}</td>
-      <td><span class="vmoniker">${label}</span>${tag}</td>
+    vrows+=`<tr class="${isMe?'me':''}${e.kind==='pool'?' poolRow':''}" ${e.kind==='pool'?'data-pool="'+e.id+'"':''}><td>${i+1}</td>
+      <td><span class="vmoniker">${label}</span>${tag}${e.kind==='pool'?' <span style="color:var(--textFaint);font-size:10px">\u25B8</span>':''}</td>
       <td class="vshare">${pct(share)}</td>
       <td>${e.kind==='pool'?(e.fee*100).toFixed(1)+'%':'\u2014'}</td>
       <td>${fmt(e.hashRate/1000)} GH/s</td></tr>`; });
@@ -856,9 +1259,44 @@ function renderExplore(){
     <div class="section">Network \u00B7 ${net.chainId} \u00B7 height ${fmt(net.height)}</div>
     <div class="section">Pools &amp; miners \u00B7 ${fmt(net.globalHashRate/1000)} GH/s global</div>
     <table><thead><tr><th>#</th><th>Pool / Miner</th><th>Share</th><th>Fee</th><th>Hashrate</th></tr></thead><tbody>${vrows}</tbody></table>
+    <div class="note" style="margin:6px 0 0">Tap a pool to see its miner dashboard (your rigs appear there when assigned).</div>
     <div class="section">Latest blocks</div>${brows}
     <div class="note">Each block has exactly one winner, chosen by hash-weighted lottery. Pools hold ${(net.globalHashRate? (1-net.soloFieldHash/net.globalHashRate)*100:0).toFixed(0)}% of global; the solo field (incl. you) is the rest. Rewards in <b>BBT</b>.</div>`;
   document.querySelectorAll('.blockRow').forEach(r=>r.onclick=()=>openBlock(+r.dataset.h));
+  document.querySelectorAll('.poolRow').forEach(r=>r.onclick=()=>openPoolDash(r.dataset.pool));
+}
+
+/* Pool dashboard: NPC roster + your rigs assigned to this pool. */
+function openPoolDash(poolId){
+  const pool=poolById(APP.chain, poolId); if(!pool) return;
+  const summ=poolSummary(poolId, pool.hashRate, 15);
+  // your rigs on this pool (if you're pointed at it)
+  const yourRigs = (APP.settings.poolId===poolId) ? RIGS.filter(r=>r.state==='MINING') : [];
+  const yourTotal = yourRigs.reduce((s,r)=>s+rigLiveHash(r),0);
+  const uid = USER?USER.username:'you';
+  let yourHtml='';
+  if(yourRigs.length){
+    yourHtml='<div class="section">Your rigs on '+pool.name+'</div>';
+    yourRigs.forEach(r=>{ const rn=(r.name||r.label); yourHtml+='<div class="pdRow you"><span>'+uid+'.'+rn+'</span><span style="color:var(--phosphor)">'+fmt(rigLiveHash(r))+' MH/s</span></div>'; });
+    yourHtml+='<div class="pdRow you total"><span>Your total</span><span style="color:var(--phosphor)">'+fmt(yourTotal)+' MH/s</span></div>';
+  }
+  // top NPC miners; clicking a miner drills into their rigs
+  let rows='';
+  summ.top.forEach((m,i)=>{
+    rows+='<div class="pdMiner" data-pool="'+poolId+'" data-idx="'+i+'"><div class="pdMHead"><span class="pdUser">'+m.user+'</span><span class="pdHash">'+fmt(m.total)+' MH/s</span></div>'+
+      '<div class="pdMeta">'+m.rigs.length+' rig'+(m.rigs.length>1?'s':'')+' \u00B7 tap to expand</div>'+
+      '<div class="pdRigs" id="pdRigs_'+i+'" style="display:none">'+m.rigs.map(rg=>'<div class="pdRow"><span>'+rg.name+'</span><span>'+fmt(rg.hashMH)+' MH/s</span></div>').join('')+'</div></div>';
+  });
+  sheet.innerHTML='<div class="sheetHead"><div><h2>'+pool.name+'</h2><div class="sub">'+pool.host+':'+pool.port+' \u00B7 '+(pool.fee*100).toFixed(1)+'% fee</div></div><button class="closeX" id="cxPd">\u00D7</button></div>'+
+    '<div class="totals"><div class="tcard"><div class="v" style="color:var(--phosphor)">'+fmt(pool.hashRate/1000)+'</div><div class="l">GH/s POOL</div></div>'+
+    '<div class="tcard"><div class="v">'+fmt(summ.count)+'</div><div class="l">MINERS</div></div>'+
+    '<div class="tcard"><div class="v">'+fmt(summ.rigCount)+'</div><div class="l">RIGS</div></div></div>'+
+    yourHtml+
+    '<div class="section">Top miners ('+summ.count+' total)</div>'+rows+
+    '<div class="note">Virtual miners make up this pool\u2019s hashrate. Assign your rigs to '+pool.name+' (tap a rig \u2192 Mining target) and they register here under your username.</div>';
+  document.getElementById('cxPd').onclick=()=>backdrop.classList.remove('open');
+  document.querySelectorAll('.pdMiner').forEach((el,i)=>el.onclick=()=>{ const r=document.getElementById('pdRigs_'+i); if(r) r.style.display=r.style.display==='none'?'block':'none'; });
+  backdrop.classList.add('open');
 }
 function openBlock(height){
   const b=APP.chain.blocks.find(x=>x.height===height); if(!b) return;
@@ -926,8 +1364,38 @@ function renderStats(){
     <div class="stat"><div class="l">Accrued This Cycle</div>
       <div class="v" style="color:var(--ember)">${money(APP.econ.kwhUsed*APP.settings.costPerKwh)}</div>
       <div class="s">${APP.econ.kwhUsed.toFixed(1)} kWh @ $${APP.settings.costPerKwh}/kWh \u00B7 due after 30 days</div></div>
+    <div class="section">Power &amp; electrical \u00b7 the meter at the wall</div>
+    <div id="pwrSub"></div>
+    <div id="pwrDetail"></div>
     <div class="note">Anchored to late-2015 Ethereum scale: a 6-card rig is ~0.044% of a ~381 GH/s network.
       Luck = actual vs. expected block wins. Token: <b>BBT</b>.</div>`;
+  renderPowerPanel();
+}
+
+/* ---- Power & electrical panel with per-room subtabs ---- */
+let pwrRoom=null;
+function renderPowerPanel(){
+  const owned=SLOT.locations||['dorm'];
+  if(!pwrRoom || !owned.includes(pwrRoom)) pwrRoom=owned[0];
+  const sub=document.getElementById('pwrSub'); if(!sub) return;
+  sub.innerHTML='<div class="pwrTabs">'+owned.map(l=>'<button class="pwrTab'+(l===pwrRoom?' on':'')+'" data-l="'+l+'">'+LOCATIONS[l].name+'</button>').join('')+'</div>';
+  sub.querySelectorAll('.pwrTab').forEach(b=>b.onclick=()=>{ pwrRoom=b.dataset.l; renderPowerPanel(); });
+  const det=document.getElementById('pwrDetail'); if(!det) return;
+  const rigs=rigsInLocation(pwrRoom);
+  const pw=locationPower(pwrRoom, rigs, r=>rigDrawW(r)||rigWattsTotal(r));
+  if(!pw){ det.innerHTML='<div class="note" style="margin:0">No electrical data.</div>'; return; }
+  let circuits='';
+  pw.circuits.forEach(c=>{
+    const pctLoad=Math.min(100, c.loadPct*100);
+    const barCol=c.tripped?'var(--ember)':c.overSafe?'var(--amber)':'var(--phosphor)';
+    const status=c.tripped?'<span style="color:var(--ember)">\u26a0 BREAKER TRIPPED</span>':c.overSafe?'<span style="color:var(--amber)">\u26a0 over safe load</span>':'<span style="color:var(--phosphor)">ok</span>';
+    circuits+='<div class="circRow"><div class="circHead"><span>'+c.name+' \u00b7 '+c.amps+'A/'+c.volts+'V</span>'+status+'</div>'+
+      '<div class="circMeta">'+fmt(c.watts)+'W \u00b7 '+c.amps_draw.toFixed(1)+'A draw \u00b7 plugs '+c.plugsUsed+'/'+c.plugs+' \u00b7 safe '+fmt(c.capacityW)+'W</div>'+
+      '<div class="circBar"><div class="circFill" style="width:'+pctLoad.toFixed(0)+'%;background:'+barCol+'"></div></div></div>';
+  });
+  det.innerHTML='<div class="stat" style="margin-bottom:8px"><div class="l">'+LOCATIONS[pwrRoom].name+' \u00b7 '+pw.service+'</div>'+
+    '<div class="v" style="font-size:18px">'+fmt(pw.totalW)+' W <span style="font-size:12px;color:var(--textDim)">across '+pw.circuits.length+' circuit'+(pw.circuits.length>1?'s':'')+'</span></div>'+
+    '<div class="s">plugs '+pw.usedPlugs+'/'+pw.totalPlugs+' used'+(pw.anyTripped?' \u00b7 <span style="color:var(--ember)">breaker tripped \u2014 rigs throttled</span>':pw.anyOverSafe?' \u00b7 <span style="color:var(--amber)">over safe load</span>':'')+'</div></div>'+circuits;
 }
 
 /* ---- settings ---- */
@@ -983,28 +1451,32 @@ function checkout(){
 
 function renderShop(){
   const bal=WORLD.chain.player.balance;
-  // top: balance + cart button + category tabs
-  let tabs='<button class="stTab'+(storeTab==='locations'?' on':'')+'" data-st="locations">\u{1F3E0} Locations</button>';
-  STORE_SECTIONS.forEach(s=>{ tabs+='<button class="stTab'+(storeTab===s.key?' on':'')+'" data-st="'+s.key+'">'+s.icon+' '+s.label+'</button>'; });
-  tabs+='<button class="stTab'+(storeTab==='owned'?' on':'')+'" data-st="owned">\u{1F4E6} Parts Owned ('+SLOT.parts.length+')</button>';
+  // left-side vertical category nav
+  let nav='<button class="shopNav'+(storeTab==='locations'?' on':'')+'" data-st="locations">\u{1F3E0} Locations</button>';
+  STORE_SECTIONS.forEach(s=>{ nav+='<button class="shopNav'+(storeTab===s.key?' on':'')+'" data-st="'+s.key+'">'+s.icon+' '+s.label+'</button>'; });
+  nav+='<button class="shopNav'+(storeTab==='owned'?' on':'')+'" data-st="owned">\u{1F4E6} Owned ('+SLOT.parts.length+')</button>';
+  nav+='<button class="shopNav'+(storeTab==='assemble'?' on':'')+'" data-st="assemble">\u{1F527} Assemble</button>';
 
   let body='';
   if(storeTab==='locations') body=renderLocShop();
   else if(storeTab==='owned') body=renderOwned();
+  else if(storeTab==='assemble') body='<div class="note" style="margin:0 0 10px">Build a rig from parts you own. Open the assembler to pick a case, board, and GPUs.</div><button id="assembleBtn" class="assembleBtn">\u{1F527} Open rig assembler</button>'+assembleSummary();
   else body=renderPartsSection(storeTab);
 
-  const cartBar='<div class="cartBar"><button class="cartToggle" id="cartToggle">\u{1F6D2} Cart ('+cartCount()+') \u00B7 '+fmt1(cartTotal())+' BBT</button></div>';
+  // top bar: balance + cart toggle (always visible, no scrolling needed)
+  const topBar='<div class="shopTop">'+
+    '<div class="shopBal">Balance <b style="color:var(--coin)">'+fmt1(bal)+' BBT</b></div>'+
+    '<button class="cartTopBtn'+(cartOpen?' on':'')+'" id="cartToggle">\u{1F6D2} Cart ('+cartCount()+') \u00b7 '+fmt1(cartTotal())+' BBT</button>'+
+    '</div>';
   const cartPanel = cartOpen ? renderCart() : '';
 
   document.getElementById('view-shop').innerHTML=
-    '<header style="padding:6px 0 0"><h2 style="font-size:26px;font-weight:800">Store</h2>'+
-    '<div style="color:var(--textDim);font-size:13px;margin-top:4px">Balance: <b style="color:var(--coin)">'+fmt1(bal)+' BBT</b></div></header>'+
-    '<div class="stTabs">'+tabs+'</div>'+
-    cartBar + cartPanel +
-    '<div class="stBody">'+body+'</div>';
+    '<header style="padding:6px 0 2px"><h2 style="font-size:24px;font-weight:800">Store</h2></header>'+
+    topBar + cartPanel +
+    '<div class="shopGrid"><div class="shopNavCol">'+nav+'</div>'+
+    '<div class="shopItems" id="stBody">'+body+'</div></div>';
 
-  // wire tabs
-  document.querySelectorAll('.stTab').forEach(b=>b.onclick=()=>{ storeTab=b.dataset.st; cartOpen=false; renderShop(); });
+  document.querySelectorAll('.shopNav').forEach(b=>b.onclick=()=>{ storeTab=b.dataset.st; cartOpen=false; renderShop(); });
   document.getElementById('cartToggle').onclick=()=>{ cartOpen=!cartOpen; renderShop(); };
   document.querySelectorAll('.buyLoc').forEach(b=>b.onclick=()=>buyLocation(b.dataset.id));
   document.querySelectorAll('.addCart').forEach(b=>b.onclick=()=>addToCart(b.dataset.id));
@@ -1012,6 +1484,12 @@ function renderShop(){
   const co=document.getElementById('checkoutBtn'); if(co) co.onclick=checkout;
   const asm=document.getElementById('assembleBtn'); if(asm) asm.onclick=openAssembly;
 }
+function assembleSummary(){
+  const builds=(SLOT.builds||[]).length;
+  return '<div class="note" style="margin-top:8px">You have '+SLOT.parts.length+' loose parts'+(builds?' and '+builds+' built rig'+(builds>1?'s':''):'')+'.</div>';
+}
+let _stTabsScroll=0;
+function enableDragScroll(el){ /* retained for compatibility; no-op now */ }
 
 function renderLocShop(){
   const owned=new Set(SLOT.locations); let cards='';
@@ -1039,12 +1517,13 @@ function renderPartsSection(key){
     else if(key==='cases'||key==='motherboards') spec=it.slots+'-card';
     else if(key==='psus'&&it.watts) spec=it.watts+'W';
     const inCart=CART.find(l=>l.id===it.id);
-    rows+='<div class="partRow"><div class="partInfo"><div class="partName">'+(it.vendor?'<span style="color:var(--textFaint)">'+it.vendor+'</span> ':'')+it.name+'</div>'+
-      (spec?'<div class="partSpec">'+spec+'</div>':'')+'</div>'+
-      '<div class="partPrice">'+(it.price||0)+' BBT</div>'+
-      '<button class="addCart" data-id="'+it.id+'">'+(inCart?'+ ('+inCart.qty+')':'Add')+'</button></div>';
+    rows+='<tr><td class="ptName">'+(it.vendor?'<span style="color:var(--textFaint)">'+it.vendor+'</span> ':'')+it.name+
+      (spec?'<div class="ptSpec">'+spec+'</div>':'')+'</td>'+
+      '<td class="ptPrice">'+(it.price||0)+'</td>'+
+      '<td class="ptAdd"><button class="addCart" data-id="'+it.id+'">'+(inCart?'\u2713 '+inCart.qty:'Add')+'</button></td></tr>';
   });
-  return '<div class="partList">'+rows+'</div>';
+  return '<div class="ptHead">'+sec.icon+' '+sec.label+' \u00b7 '+sec.items.length+' items</div>'+
+    '<table class="ptTable"><thead><tr><th>Item</th><th>BBT</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>';
 }
 
 function renderCart(){
@@ -1160,12 +1639,14 @@ function commitBuild(build){
   // create an assembled rig in the chosen location, mark its parts as used
   const locId=build.locId;
   const v=validateRig(build); if(!v.valid) return;
+  const buildN=(SLOT.builds||[]).length+1;
+  const defaultName='rig'+String(buildN).padStart(2,'0');
   // each GPU contributes its hashrate; rig uses normal power by default
-  const rig={ id:'build_'+Date.now(), label:'Custom Rig', gpu:'custom', custom:true,
+  const rig={ id:'build_'+Date.now(), label:'Custom Rig '+buildN, name:defaultName, gpu:'custom', custom:true,
     gpus:build.gpus.slice(), count:build.gpus.length, power:'normal',
     state:'OFFLINE', shares:0, jobId:1, locId,
     parts:{ case:build.case, motherboard:build.motherboard, cpu:build.cpu, memory:build.memory, storage:build.storage, riser:build.riser, psu:build.psu } };
-  SLOT.builds=SLOT.builds||[]; SLOT.builds.push({...build, name:'Custom Rig', built:true});
+  SLOT.builds=SLOT.builds||[]; SLOT.builds.push({...build, name:defaultName, built:true});
   RIGS.push(rig);
   setPlayerHashRate(WORLD.chain, networkHashFromRigs());
   backdrop.classList.remove('open');
@@ -1175,15 +1656,36 @@ function commitBuild(build){
 
 /* ---- SLOT SELECT ---- */
 const slotScreen=document.getElementById('slotScreen');
+/* ---- user setup (username + visible copyable ID) ---- */
+function showUserSetup(){
+  slotScreen.style.display='block';
+  document.getElementById('slotList').innerHTML=
+    '<div style="max-width:440px">'+
+    '<h2 style="font-size:24px;font-weight:800;margin-bottom:6px">Create your account</h2>'+
+    '<p style="color:var(--textDim);font-size:13px;margin-bottom:18px">Your account holds all your miners (save slots). Pick a username \u2014 you\u2019ll get a unique User ID you can keep. Later this links to real accounts for premium features.</p>'+
+    '<label style="font-size:12px;color:var(--textDim);letter-spacing:1px">USERNAME</label>'+
+    '<input id="userName" maxlength="24" placeholder="e.g. bitsbetrippin" style="width:100%;margin:6px 0 16px;background:var(--panelHi);color:var(--text);border:1px solid var(--grid);border-radius:10px;padding:13px;font-size:15px"/>'+
+    '<button id="userCreate" class="slotPlay" style="width:100%;padding:14px">Create account \u2192</button>'+
+    '</div>';
+  const inp=document.getElementById('userName'); inp.focus();
+  const go=()=>{ const v=inp.value.trim(); if(!v){ inp.style.borderColor='var(--ember)'; return; } createUser(v); showSlotSelect(); };
+  document.getElementById('userCreate').onclick=go;
+  inp.addEventListener('keydown',e=>{ if(e.key==='Enter') go(); });
+}
+
 function showSlotSelect(){
   slotScreen.style.display='block';
   const sums=slotSummaries();
   let html='';
+  // user header with copyable ID
+  html+='<div class="userBar"><div><div class="uName">'+(USER?USER.username:'Player')+'</div>'+
+    '<div class="uId">ID: <span id="uIdVal">'+(USER?USER.id:'\u2014')+'</span> <button class="uCopy" id="uCopy">copy</button></div></div>'+
+    '<button class="uSwitch" id="uSwitch">Switch user</button></div>';
   sums.forEach(s=>{
     if(s.exists){
       html+='<div class="slotCard" data-n="'+s.n+'">'+
         '<div class="slotInfo"><div class="slotName">'+s.name+'</div>'+
-        '<div class="slotMeta">'+fmt1(s.balance)+' BBT \u00B7 '+s.locations.length+' location'+(s.locations.length>1?'s':'')+' \u00B7 '+s.rigCount+' rigs</div></div>'+
+        '<div class="slotMeta">'+(s.occupation&&occupationById(s.occupation)?occupationById(s.occupation).name+' \u00B7 ':'')+'$'+fmt1(s.usd)+' \u00B7 '+fmt1(s.balance)+' BBT \u00B7 '+s.rigCount+' rigs</div></div>'+
         '<div class="slotActions"><button class="slotPlay" data-n="'+s.n+'">Play \u2192</button>'+
         '<button class="slotDel" data-n="'+s.n+'">\u00D7</button></div></div>';
     } else {
@@ -1194,9 +1696,31 @@ function showSlotSelect(){
     }
   });
   document.getElementById('slotList').innerHTML=html;
+  const cp=document.getElementById('uCopy'); if(cp) cp.onclick=()=>{ try{ navigator.clipboard.writeText(USER.id); cp.textContent='copied!'; setTimeout(()=>cp.textContent='copy',1200);}catch(e){} };
+  const sw=document.getElementById('uSwitch'); if(sw) sw.onclick=()=>{ if(confirm('Switch user? This starts a new account. Your current miners stay saved on this device under the old ID.')){ showUserSetup(); } };
   document.querySelectorAll('.slotPlay').forEach(b=>b.onclick=()=>startSlot(+b.dataset.n));
-  document.querySelectorAll('.slotNew').forEach(b=>b.onclick=()=>{ newSlot(+b.dataset.n); startSlot(+b.dataset.n); });
+  document.querySelectorAll('.slotNew').forEach(b=>b.onclick=()=>showOccupationPick(+b.dataset.n));
   document.querySelectorAll('.slotDel').forEach(b=>b.onclick=(e)=>{ e.stopPropagation(); if(confirm('Delete this miner permanently?')){ deleteSlot(+b.dataset.n); showSlotSelect(); } });
+}
+
+/* ---- occupation picker (shown when creating a new slot) ---- */
+function showOccupationPick(n){
+  slotScreen.style.display='block';
+  // sort by salary ascending for a nice progression
+  const occs=[...OCCUPATIONS].sort((a,b)=>a.annual-b.annual);
+  let rows='';
+  occs.forEach(o=>{
+    rows+='<div class="occRow" data-id="'+o.id+'"><div class="occInfo"><div class="occName">'+o.name+'</div>'+
+      '<div class="occMeta">$'+o.annual.toLocaleString()+'/yr \u00B7 $'+o.weekly.toLocaleString()+'/wk</div></div>'+
+      '<button class="occPick" data-id="'+o.id+'">Choose</button></div>';
+  });
+  document.getElementById('slotList').innerHTML=
+    '<div style="margin-bottom:14px"><button class="occBack" id="occBack">\u2190 Back</button></div>'+
+    '<h2 style="font-size:22px;font-weight:800;margin-bottom:4px">Choose your occupation</h2>'+
+    '<p style="color:var(--textDim);font-size:13px;margin-bottom:8px">Your job pays a real-world weekly salary in <b style="color:var(--phosphor)">USD</b>. Your first paycheck (a full week) lands immediately \u2014 seed cash to buy BBT on the exchange and start mining. Each following week pays 15% of your weekly salary.</p>'+
+    '<div class="occList">'+rows+'</div>';
+  document.getElementById('occBack').onclick=showSlotSelect;
+  document.querySelectorAll('.occPick').forEach(b=>b.onclick=()=>{ newSlot(n, null, b.dataset.id); startSlot(n); });
 }
 function startSlot(n){
   enterSlot(n);
@@ -1219,7 +1743,8 @@ document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>go(b.dataset.
 function render(){
   if(activeSlotN===null) return;
   const net=SRC.getNetwork(); const p=SRC.getPlayer();
-  document.getElementById('hudCoin').textContent='\u26C3 '+fmt(p.balance)+' BBT';
+  document.getElementById('hudUsd').textContent='$'+fmt1(SLOT.usd||0);
+  document.getElementById('hudCoin').innerHTML='\u26C3 '+fmt1(p.balance)+' BBT <span style="color:var(--textFaint);font-size:11px">@$'+WORLD.econ.bbtUsd.toFixed(2)+'</span>';
   const gShare=net.globalHashRate>0?p.hashRate/net.globalHashRate:0;
   document.getElementById('hudRate').textContent=fmt(networkHashFromRigs())+' MH/s \u00B7 '+(gShare*100).toFixed(4)+'% net';
   if(activeTab==='dash') renderDash();
@@ -1229,8 +1754,13 @@ function render(){
   else if(activeTab==='settings') renderSettings();
 }
 
-/* ---- BOOT: show slot select first ---- */
-showSlotSelect();
+/* ---- BOOT: user identity first, then slot select ---- */
+function boot(){
+  USER=loadUser();
+  if(USER && USER.id){ showSlotSelect(); }
+  else { showUserSetup(); }
+}
+boot();
 </script>
 </body>
 </html>

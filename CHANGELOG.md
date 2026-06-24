@@ -3,6 +3,102 @@
 All notable changes to Rig Runner / *Miner's Life* are tracked here.
 Format loosely follows Keep a Changelog. Dates are YYYY-MM-DD.
 
+## [0.8] — 2026-06-23
+
+Adds the electrical/power system, console share statuses, exchange depth, and
+GPU-typed miner software.
+
+### Added
+- **Electrical / power system** (`electrical.js`) with a realistic soft cap:
+  - **Dorm** = single 20A/120V circuit. **Garage** = two 30A/240V circuits.
+    **Shack** = 200A service split into 6×30A breaker panels, each a 6-plug PDU
+    (36 plugs → up to ~18 rigs).
+  - NEC 80% continuous-load rule: drawing past a circuit's safe watts **warns**,
+    and exceeding the breaker rating **trips it** and throttles those rigs (no
+    hashrate until load drops).
+  - New **Power & electrical** section in Stats with per-room subtabs (the "meter
+    at the wall"): per-circuit amps draw, watts, plug usage, and trip status.
+- **Console stale & rejected shares** — ~0.1% stale (rare) and a per-rig
+  **0.5–1.3%** reject rate, shown live with accepted/rejected/stale tallies.
+- **Exchange depth** — candle interval toggles (**1m / 5m / 1h / 1d / 1w**), a
+  **right-side price axis** with gridlines and a highlighted current price, and a
+  **live order book** that churns with activity and volume.
+- **GPU-typed miner software** — rigs now boot the appropriate miner by GPU
+  vendor (NVIDIA → T-Rex/CUDA, AMD → TeamRedMiner/OpenCL) with matching console
+  output. Foundation for fuller per-GPU console themes.
+
+### Pending
+- Rig click-areas to be re-aligned to the silver miner-shell outline (awaiting a
+  reference screenshot).
+
+## [0.7] — 2026-06-23
+
+Adds a user account layer, a far more sophisticated exchange, named/swappable
+rigs, live pool dashboards with virtual miners, and a reworked store layout.
+
+### Added
+- **User account** — New/Load Game now starts with a username entry that issues a
+  unique, copyable **User ID** (`RR-XXXX-XXXX`). One global user owns all 6 slots,
+  and every slot is stamped with the user ID. (Role-based access / app-store
+  account linkage is backlog; this is the identity stub for it.)
+- **Exchange v2**:
+  - **1-minute candlestick chart** with red/green bodies and simulated volume.
+  - **Volatility engine** — price holds a calm ~5–11% band normally with ~2% drift
+    per 15 min, punctuated by **rare 3–5 minute events** that swing **15–20%** up
+    or down (≈ one event every ~3.5 hours). Synthesized from the one shared price
+    sim, so all slots see the same market.
+  - **Limit buy / limit sell** at a user-entered price — orders rest and fill when
+    the market reaches your level (maker fee), alongside instant market orders
+    (taker fee).
+  - **Buy/Sell** are now smaller, distinct **green/red** toggle buttons, separate
+    from the execute button.
+- **Named, swappable rigs** — every rig has an editable **Rig Name**, used as your
+  rig ID in pool dashboards.
+- **Pool dashboards** — tap any pool in the Explorer to see a live dashboard of the
+  **virtual NPC miners** that make up its hashrate (deterministic `userID.rigname`
+  rosters that sum to the pool's GH/s). Your own rigs register here under your
+  username when assigned, with per-rig and cumulative hashrate. Drill into any
+  miner to see their rigs.
+- **Store rework** — left-side vertical category selector with items in a table on
+  the right; **Cart** and **Assemble** are top-level selectors so nothing requires
+  scrolling. (Also fully resolves the old category-scroll snap-back.)
+
+### Notes
+- Salaries (`occupations.csv`), part prices (`parts_pricing.csv`) remain
+  CSV-editable. Fee tiers and volatility constants live in `market.js`.
+- Deferred: real money for speedups / premium occupations (app-store linked);
+  laptops/exchange access in garage & shack; CSV loaded at runtime.
+
+## [0.6] — 2026-06-23
+
+Adds a real-world income layer: occupations, a USD wallet with weekly salary, and
+a dorm-laptop crypto exchange to convert USD into BBT.
+
+### Added
+- **Occupations** (50 real BLS-based roles, $30k–$239k/yr). Pick one right after
+  creating a slot. Weekly salary = annual ÷ 52. Editable via `occupations.csv`.
+- **USD wallet** ($, stable at $1) alongside BBT (floating). HUD shows both, with
+  the live BBT price.
+- **Weekly salary** — game week = real week. Week 1 deposits a full weekly salary
+  (your seed cash); each subsequent real week adds 15% of the weekly salary.
+- **Dorm laptop → Exchange**: tap the laptop on the desk to open a mock USD/BBT
+  market that reflects the live sim price (no market impact). Includes a price
+  chart, an order book (depth scaled to mined token supply), buy/sell, and a
+  **tiered maker/taker fee** schedule (0.40%/0.60% down to 0.00%/0.10%) that drops
+  as your trading volume grows. Market (taker) vs limit (maker) toggle.
+
+### Fixed
+- **Store category tabs no longer snap back** when scrolling — added drag-to-
+  scroll, wheel-to-scroll, and scroll-position persistence across re-renders.
+
+### Notes
+- New flow: start with your first paycheck in USD → convert to BBT on the laptop
+  exchange → buy parts/locations in the store. The one free dorm rig mines from
+  the start.
+- Deferred: laptops/computers in the garage and shack (exchange access there);
+  loading salaries/fees from CSV at runtime; limit orders that actually rest on
+  the book.
+
 ## [0.5] — 2026-06-22
 
 Adds a full multi-category parts store, a shopping cart, a parts inventory, and

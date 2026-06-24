@@ -13,6 +13,7 @@ const LOCATIONS = {
     id:'dorm', name:'Dorm Room', img:'assets/room.png', price:0, free:true,
     blurb:'A single rig on the desk. Where everyone starts.',
     rigSpots:[ {left:57.5, top:58.5, width:23.0, height:14.5} ], // 1 rig (existing)
+    laptop:{left:67, top:14, width:11, height:9}, // exchange terminal hotspot
   },
   garage: {
     id:'garage', name:'Home Garage', img:'assets/garage.png', price:100,
