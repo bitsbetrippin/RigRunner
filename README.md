@@ -8,6 +8,7 @@
 
 <p>
   <img alt="version" src="https://img.shields.io/badge/version-0.9.2-39ff8b">
+  <img alt="license" src="https://img.shields.io/badge/license-MIT-brightgreen">
   <img alt="stack" src="https://img.shields.io/badge/stack-vanilla%20JS%20%2B%20HTML5-blue">
   <img alt="backend" src="https://img.shields.io/badge/backend-none-lightgrey">
   <img alt="build" src="https://img.shields.io/badge/build-none-brightgreen">
@@ -418,7 +419,7 @@ rig-runner/
 │
 ├── CHANGELOG.md            # Versioned history (Keep a Changelog format).
 ├── README.md               # You are here.
-├── LICENSE                 # See the License section — update before publishing.
+├── LICENSE                 # MIT — see the License section.
 └── .gitignore              # Editor/OS cruft, node_modules.
 ```
 
@@ -558,6 +559,9 @@ so the loop is fast:
 **Style:** match the surrounding code — vanilla JS, no framework, no new runtime
 dependencies. Keep engine modules DOM-free.
 
+By contributing, you agree that your contributions will be licensed under the
+project's [MIT License](#license).
+
 ---
 
 ## Roadmap
@@ -586,26 +590,23 @@ power.
 
 ## License
 
-> ⚠️ **Action needed before you open-source this.** The current `LICENSE` file
-> reads *"All rights reserved. Placeholder."* — which is **not** an open-source
-> license. Until you replace it, no one has the legal right to use, copy, or
-> contribute to the code, which defeats the purpose of publishing.
+Rig Runner — *Miner's Life* is released under the **MIT License**. You are free
+to use, copy, modify, merge, publish, distribute, sublicense, and sell copies of
+the software, subject to including the copyright and permission notice. The
+software is provided "as is", without warranty of any kind. See the full text in
+[`LICENSE`](LICENSE).
 
-Pick a license that matches your intent and drop its text into `LICENSE`:
+```
+MIT License · Copyright (c) 2026 bitsbetrippin / Carter
+```
 
-- **MIT** — simplest and most permissive; maximizes adoption. Good default for a
-  game you want people to freely fork and learn from.
-- **Apache-2.0** — permissive like MIT but adds an explicit patent grant and
-  contribution terms; a common choice for slightly more formal projects.
-- **GPL-3.0** — copyleft; requires derivatives to stay open source. Choose this
-  if you want forks to remain open.
-
-A note on **assets**: your pixel art in `assets/` is your original work. Many
-projects license *code* permissively (MIT) but keep *art* under a separate,
-more restrictive license (e.g. CC BY-NC-ND). If that's your intent, state it
-explicitly — e.g. add an `assets/LICENSE` and note the split here.
-
-*(Once chosen, update this section and the badge at the top of the README.)*
+**A note on assets.** The MIT License above covers the project's **code**. The
+pixel-art PNGs in [`assets/`](assets/) are the author's own original work. If you
+intend to reuse the artwork outside this repository, please check with the author
+first — you may wish to license the art separately from the code (a common split
+for game projects). If you have no separate asset license, the simplest reading
+is that MIT covers the whole repository; state your intent explicitly here if
+that is *not* what you want.
 
 ---
 
