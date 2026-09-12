@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 760" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#9fb3c8"/>
+    </marker>
+    <marker id="arrowDash" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#6b7f96"/>
+    </marker>
+    <style>
+      .band  { font-size:15px; font-weight:700; letter-spacing:1px; }
+      .node  { font-size:12.5px; font-weight:600; }
+      .sub   { font-size:10.5px; fill:#8aa0b6; }
+      .edge  { font-size:10.5px; fill:#6b7f96; }
+      .flow  { stroke:#9fb3c8; stroke-width:1.6; fill:none; }
+      .flowD { stroke:#6b7f96; stroke-width:1.4; stroke-dasharray:5 4; fill:none; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1100" height="760" fill="#0a0c10"/>
+  <text x="40" y="42" fill="#e8f0f8" font-size="22" font-weight="700">Rig Runner — Operational View (OV-1)</text>
+  <text x="40" y="64" class="sub" font-size="12">Everything runs client-side in the browser. Player actions drive deterministic engines; all durable state persists to localStorage.</text>
+
+  <!-- ===================== PLAYER BAND ===================== -->
+  <rect x="40" y="90" width="1020" height="140" rx="12" fill="#0f2417" stroke="#39ff8b" stroke-width="1.5"/>
+  <text x="60" y="116" class="band" fill="#39ff8b">🧑 PLAYER — you, in the browser</text>
+
+  <g>
+    <rect x="60"  y="132" width="180" height="80" rx="8" fill="#12331c" stroke="#39ff8b"/>
+    <text x="150" y="162" class="node" fill="#c9ffd8" text-anchor="middle">Pick occupation</text>
+    <text x="150" y="182" class="sub"  text-anchor="middle">→ weekly USD</text>
+
+    <rect x="255" y="132" width="180" height="80" rx="8" fill="#12331c" stroke="#39ff8b"/>
+    <text x="345" y="162" class="node" fill="#c9ffd8" text-anchor="middle">Buy parts,</text>
+    <text x="345" y="180" class="node" fill="#c9ffd8" text-anchor="middle">build rigs</text>
+
+    <rect x="450" y="132" width="180" height="80" rx="8" fill="#12331c" stroke="#39ff8b"/>
+    <text x="540" y="162" class="node" fill="#c9ffd8" text-anchor="middle">Wire power,</text>
+    <text x="540" y="180" class="node" fill="#c9ffd8" text-anchor="middle">assign plugs</text>
+
+    <rect x="645" y="132" width="180" height="80" rx="8" fill="#12331c" stroke="#39ff8b"/>
+    <text x="735" y="162" class="node" fill="#c9ffd8" text-anchor="middle">Mine</text>
+    <text x="735" y="182" class="sub"  text-anchor="middle">solo / pool</text>
+
+    <rect x="840" y="132" width="180" height="80" rx="8" fill="#12331c" stroke="#39ff8b"/>
+    <text x="930" y="162" class="node" fill="#c9ffd8" text-anchor="middle">Trade</text>
+    <text x="930" y="182" class="sub"  text-anchor="middle">USD ↔ BBT</text>
+  </g>
+
+  <!-- Player -> Engine verticals -->
+  <path class="flow" d="M150,212 L150,300" marker-end="url(#arrow)"/>
+  <path class="flow" d="M345,212 L345,300" marker-end="url(#arrow)"/>
+  <path class="flow" d="M540,212 L540,300" marker-end="url(#arrow)"/>
+  <path class="flow" d="M735,212 L735,300" marker-end="url(#arrow)"/>
+  <path class="flow" d="M930,212 L930,300" marker-end="url(#arrow)"/>
+
+  <!-- ===================== SIMULATION BAND ===================== -->
+  <rect x="40" y="300" width="1020" height="200" rx="12" fill="#0d1b2a" stroke="#4aa3ff" stroke-width="1.5"/>
+  <text x="60" y="326" class="band" fill="#7fc0ff">⚙️ SIMULATION CORE — deterministic engines (engine/*.js, no DOM)</text>
+
+  <g>
+    <rect x="60"  y="342" width="180" height="70" rx="8" fill="#122438" stroke="#4aa3ff"/>
+    <text x="150" y="370" class="node" fill="#d6ecff" text-anchor="middle">Economy</text>
+    <text x="150" y="390" class="sub"  text-anchor="middle">salary • store • wallet</text>
+
+    <rect x="255" y="342" width="180" height="70" rx="8" fill="#122438" stroke="#4aa3ff"/>
+    <text x="345" y="370" class="node" fill="#d6ecff" text-anchor="middle">Rig builder</text>
+    <text x="345" y="390" class="sub"  text-anchor="middle">+ validator (parts.js)</text>
+
+    <rect x="450" y="342" width="180" height="70" rx="8" fill="#122438" stroke="#4aa3ff"/>
+    <text x="540" y="366" class="node" fill="#d6ecff" text-anchor="middle">Power grid</text>
+    <text x="540" y="384" class="sub"  text-anchor="middle">panel • breakers</text>
+    <text x="540" y="398" class="sub"  text-anchor="middle">PDUs (electrical.js)</text>
+
+    <rect x="645" y="342" width="180" height="70" rx="8" fill="#122438" stroke="#4aa3ff"/>
+    <text x="735" y="366" class="node" fill="#d6ecff" text-anchor="middle">Blockchain</text>
+    <text x="735" y="384" class="sub"  text-anchor="middle">blocks • rewards</text>
+    <text x="735" y="398" class="sub"  text-anchor="middle">halving (chain.js)</text>
+
+    <rect x="840" y="342" width="180" height="70" rx="8" fill="#122438" stroke="#4aa3ff"/>
+    <text x="930" y="366" class="node" fill="#d6ecff" text-anchor="middle">Market</text>
+    <text x="930" y="384" class="sub"  text-anchor="middle">price • candles</text>
+    <text x="930" y="398" class="sub"  text-anchor="middle">orders (market.js)</text>
+
+    <rect x="450" y="430" width="375" height="52" rx="8" fill="#0f1f30" stroke="#3b7fc4" stroke-dasharray="4 3"/>
+    <text x="637" y="452" class="node" fill="#bcd8f2" text-anchor="middle">Pools — rosters • payouts (pooldash.js)</text>
+    <text x="637" y="470" class="sub"  text-anchor="middle">chain ⇄ pools share hashrate &amp; payout windows</text>
+  </g>
+
+  <!-- inter-engine couplings -->
+  <path class="flowD" d="M735,412 L695,430" marker-end="url(#arrowDash)"/>
+  <text x="150" y="432" class="edge" text-anchor="middle">funds ↑ buy</text>
+  <path class="flowD" d="M150,412 L150,300" marker-start="url(#arrowDash)"/>
+
+  <!-- power gates chain (the key coupling) -->
+  <path class="flowD" d="M630,377 L645,377" marker-end="url(#arrowDash)"/>
+  <text x="637" y="337" class="edge" text-anchor="middle" fill="#ffcf47">gates ▶ no power = no hash</text>
+
+  <!-- reward feeds economy -->
+  <path class="flowD" d="M645,395 C400,470 240,470 150,412" marker-end="url(#arrowDash)"/>
+  <text x="360" y="486" class="edge" text-anchor="middle" fill="#ffcf47">rewards ▶ BBT into wallet</text>
+
+  <!-- price feeds economy -->
+  <path class="flowD" d="M840,377 C800,377 250,377 240,377" marker-end="url(#arrowDash)"/>
+
+  <!-- Engine -> State -->
+  <path class="flow" d="M300,482 L300,560" marker-end="url(#arrow)"/>
+  <path class="flow" d="M735,482 L735,560" marker-end="url(#arrow)"/>
+  <path class="flow" d="M930,412 L930,560" marker-end="url(#arrow)"/>
+
+  <!-- ===================== STATE BAND ===================== -->
+  <rect x="40" y="560" width="1020" height="150" rx="12" fill="#2a1f0d" stroke="#ffcf47" stroke-width="1.5"/>
+  <text x="60" y="586" class="band" fill="#ffd766">💾 PERSISTENCE — localStorage (namespaced, versioned :v1)</text>
+
+  <g>
+    <rect x="60"  y="602" width="300" height="86" rx="8" fill="#33270f" stroke="#ffcf47"/>
+    <text x="210" y="632" class="node" fill="#ffeab8" text-anchor="middle">World</text>
+    <text x="210" y="652" class="sub"  text-anchor="middle">shared chain + price</text>
+    <text x="210" y="670" class="sub"  text-anchor="middle">rigrunner:world:v1</text>
+
+    <rect x="400" y="602" width="300" height="86" rx="8" fill="#33270f" stroke="#ffcf47"/>
+    <text x="550" y="632" class="node" fill="#ffeab8" text-anchor="middle">Save slots</text>
+    <text x="550" y="652" class="sub"  text-anchor="middle">per-playthrough state</text>
+    <text x="550" y="670" class="sub"  text-anchor="middle">rigrunner:slot:&lt;n&gt;:v1</text>
+
+    <rect x="740" y="602" width="300" height="86" rx="8" fill="#33270f" stroke="#ffcf47"/>
+    <text x="890" y="632" class="node" fill="#ffeab8" text-anchor="middle">User</text>
+    <text x="890" y="652" class="sub"  text-anchor="middle">account record</text>
+    <text x="890" y="670" class="sub"  text-anchor="middle">rigrunner:user:v1</text>
+  </g>
+
+  <!-- rehydrate + render feedback loop (big side arrows) -->
+  <path class="flowD" d="M40,645 C18,645 18,405 40,405" marker-end="url(#arrowDash)"/>
+  <text x="24" y="525" class="edge" text-anchor="middle" transform="rotate(-90 24 525)">rehydrate on load</text>
+
+  <path class="flowD" d="M1060,405 C1082,405 1082,160 1060,160" marker-end="url(#arrowDash)"/>
+  <text x="1076" y="285" class="edge" text-anchor="middle" transform="rotate(90 1076 285)">render 1×/sec</text>
+</svg>
